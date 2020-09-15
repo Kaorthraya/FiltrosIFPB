@@ -10,6 +10,7 @@ Original file is located at
 import numpy as np
 import math
 from scipy import signal
+from matplotlib import pyplot as plt
 from matplotlib.ticker import (AutoMinorLocator)
 
 class f_btrwrth:
