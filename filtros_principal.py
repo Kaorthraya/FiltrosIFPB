@@ -33,6 +33,8 @@ if(choice == 'y'):
 
 print("Frequência de corte: %f" %fc1)
 
+filtro.exporttxt('saida.txt')
+
 graf1 = filtro.plot_bode(tf1, min_f=1,max_f=10000, points=1000)
 graf1.show()
 

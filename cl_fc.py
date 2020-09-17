@@ -24,6 +24,9 @@ class f_btrwrth:
         self.w_p1 = kwargs.get('w_p1', 0)
         self.w_p2 = kwargs.get('w_p2', 0)
         self.tipo = tipo
+        self.wc = 0.0
+        self.Rl = 0
+        self.top = ''
         self.roots = 0
         self.den_norm = 0
 
@@ -50,6 +53,7 @@ class f_btrwrth:
             result = self.w_p*(np.power((np.power(10.0, ((-1.0) * self.a_p / 10.0)) - 1.0), (1.0 / (2.0*ordem))))
         elif(self.tipo == 'lp'):
             result = self.w_p / (np.power((np.power(10.0, ((-1.0) * self.a_p / 10.0)) - 1.0), (1.0 / (2.0 * ordem))))
+        self.wc = result
         return result
 
     def raizes_normal(self, **kwargs):
@@ -65,6 +69,7 @@ class f_btrwrth:
         return self.roots
 
     def transfunc(self, polos, wc):
+        fcn = 0
         if self.tipo == 'lp':
             self.den_norm = np.real(np.poly(polos))
             denm = np.zeros(len(self.den_norm))
@@ -115,10 +120,12 @@ class f_btrwrth:
             ordem = kwargs['ordem']
         else:
             ordem = self.ordem()
+        self.top = topologia
+        self.Rl = R
         nomes = np.empty(ordem, dtype="<U2")
         val = np.zeros(ordem)
         elem_table = 2*abs(np.real(self.roots))                     #Utiliza a formula Cauer para calcular os elementos da tabela Butterworth
-        esq_dir = elem_table[::-1]                                  #Coloca os elementos na ordem inversa da tabela, para coincidir o primeiro elemento a depender da topologia
+        esq_dir = elem_table[::-1]                                  #Coloca os elementos na ordem inversa da tabela, para coincidir o primeiro elemento a depender da self.topologia
         if(self.tipo == 'lp'):                                      #Cálculo para FPB
             elem_fpb = esq_dir/wc                                   #Escalonamento em frequência (independe se é L ou C)
             if(topologia == 'CLC'):                                 #Inicia com capacitor
@@ -155,8 +162,23 @@ class f_btrwrth:
                     name[i-1] = "C" + str(N-i+1)                    #Nome do elemento + numero (ordem do número segue o Paarman L.)
         return elem_final, name
 
-
-
+    def exporttxt(self, arq_nome):
+        with open(arq_nome, 'w') as f:
+            f.write('Detalhamento do filtro\n')
+            f.write('Pontos de projeto escolhidos:\n')
+            f.write('   Filtro: Butterworth\n')
+            f.write('   Resposta: ' + str(self.tipo.upper()) + '\n')
+            f.write('   Ordem: ' + str(self.ordem()) + '\n')
+            f.write('   Frequência de corte: ' + str(self.wc) + '\n')
+            f.write('\nComponentes do circuito:\n')
+            f.write('   Topologia: ' + str(self.top) + '\n')
+            valor, nome = self.elements(self.wc, self.top, self.Rl)
+            f.write("   Elementos escalonados: \n")
+            for i in range(0, self.ordem()):
+                f.write('     %s = %s\n' %(nome[i], eng_string(valor[i], si=True)))
+            f.write("\n")
+            
+           
 
     def testa_par(self):
         if (self.tipo == 'hp') and ((self.w_s >= self.w_p) or (self.a_s >= self.a_p)):
