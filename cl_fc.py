@@ -126,10 +126,11 @@ class f_btrwrth:
             if(topologia == 'LCL'):
                 val, nomes = self.__Zscale(ordem, elem_fpb, R, topologia)
         if(self.tipo == 'hp'):
+            elem_fpa = (np.float_power(esq_dir, -1))*(1/wc)                                   #Escalonamento em frequência (independe se é L ou C)
             if(topologia == 'CLC'):
-                val, nomes = self.__Zscale(ordem, elem_fpb, R, topologia)
+                val, nomes = self.__Zscale(ordem, elem_fpa, R, topologia)
             if(topologia == 'LCL'):
-                val, nomes = self.__Zscale(ordem, elem_fpb, R, topologia)
+                val, nomes = self.__Zscale(ordem, elem_fpa, R, topologia)
         return val, nomes                                           #Retorna os elementos
 
     def __Zscale(self, N, elementos, R, topologia):
