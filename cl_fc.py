@@ -24,9 +24,8 @@ class f_btrwrth:
         self.w_p1 = kwargs.get('w_p1', 0)
         self.w_p2 = kwargs.get('w_p2', 0)
         self.tipo = tipo
+        self.roots = 0
         self.den_norm = 0
-        self.elem_scale = 0
-        self.elementos = 0
 
     def ordem(self):
         result = 0
@@ -62,7 +61,8 @@ class f_btrwrth:
         for i in range(1, ordem + 1):
             S_k[i - 1] = -np.sin(np.pi * (2 * i - 1) / (2 * ordem)) + (
                         1j * np.cos(np.pi * (2 * i - 1) / (2 * ordem)))  # cálculo das raízes
-        return S_k
+        self.roots = S_k
+        return self.roots
 
     def transfunc(self, polos, wc):
         if self.tipo == 'lp':
@@ -110,40 +110,51 @@ class f_btrwrth:
         ax.yaxis.set_minor_locator(AutoMinorLocator())
         return fig
 
-    def elements(self, r, wc, topologia ,**kwargs):
-        if ('ordem' in kwargs):
+    def elements(self, wc, topologia, R,**kwargs):                  #Calcula os elementos escalonados em frequência
+        if ('ordem' in kwargs):                                     #Calcula a ordem, caso seja chamado antes
             ordem = kwargs['ordem']
         else:
             ordem = self.ordem()
-        
-        elem = np.zeros(ordem)                                          #Inicia a variavel que armazena o elementos não escalonados
-        elem_inv = np.zeros(ordem)                                      #Inicia o vetor que recebe o elementos em ordem reversa
-        self.elementos = np.zeros(ordem)                                #Guarda os elementos escalonados
-        
-        elem_name = np.empty((1,ordem), dtype="<U2")                    #Cria o vetor que vai guardar a ordem dos elementos (L ou C)
-        elem = 2*abs(np.real(self.raizes_normal()))                     #Calcula os elementos n escalonados a partir das raizes
-        elem_inv = elem[::-1]                                           #Faz a inversão dos elementos (Xn, Xn-1, ..., X1)
-        
-        if(self.tipo == 'lp'):                                          #Para um passa-baixa
-            self.elem_scale = elem_inv/self.fq_corte()
-            if(topologia == 'CLC'):                                     #(Para topologia CLC)
-                for i in range(1, ordem+1):
-                    if(i%2 != 0):
-                        self.elementos[i-1] = self.elem_scale[i-1]/r    #CAPACITOR
-                        elem_name[0][i-1] = 'C' + str(ordem-i+1)
-                    else:
-                        self.elementos[i-1] = self.elem_scale[i-1]*r    #INDUTOR
-                        elem_name[0][i-1] = 'L' + str(ordem-i+1)
-            elif(topologia == 'LCL'):                                   #(Para topologia LCL)
-                for i in range(1, ordem+1):
-                    if(i%2 != 0):
-                        self.elementos[i-1] = self.elem_scale[i-1]*r    #INDUTOR
-                        elem_name[0][i-1] = 'L' + str(ordem-i+1)
-                    else:
-                        self.elementos[i-1] = self.elem_scale[i-1]/r    #CAPACITOR
-                        elem_name[0][i-1] = 'C' + str(ordem-i+1)
-        #Implementação para o passa-alta
-        return self.elementos, elem_name                                #Retorna os elementos
+        nomes = np.empty(ordem, dtype="<U2")
+        val = np.zeros(ordem)
+        elem_table = 2*abs(np.real(self.roots))                     #Utiliza a formula Cauer para calcular os elementos da tabela Butterworth
+        esq_dir = elem_table[::-1]                                  #Coloca os elementos na ordem inversa da tabela, para coincidir o primeiro elemento a depender da topologia
+        if(self.tipo == 'lp'):                                      #Cálculo para FPB
+            elem_fpb = esq_dir/wc                                   #Escalonamento em frequência (independe se é L ou C)
+            if(topologia == 'CLC'):                                 #Inicia com capacitor
+                val, nomes = self.__Zscale(ordem, elem_fpb, R, topologia)
+            if(topologia == 'LCL'):
+                val, nomes = self.__Zscale(ordem, elem_fpb, R, topologia)
+        if(self.tipo == 'hp'):
+            if(topologia == 'CLC'):
+                val, nomes = self.__Zscale(ordem, elem_fpb, R, topologia)
+            if(topologia == 'LCL'):
+                val, nomes = self.__Zscale(ordem, elem_fpb, R, topologia)
+        return val, nomes                                           #Retorna os elementos
+
+    def __Zscale(self, N, elementos, R, topologia):
+        name = np.empty(N, dtype="<U2")
+        elem_final = np.zeros(N)
+        if(topologia == 'CLC'):                                     #Primeiro elemento é capacitor
+            for i in range(1, N+1):                                 #Varre todos os elementos
+                if(i%2 != 0):                                       #Se começa com capacitor, todos os elementos ímpares são capacitores
+                    elem_final[i-1] = elementos[i-1]/R              #Capacitor
+                    name[i-1] = "C" + str(N-i+1)                    #Nome do elemento + numero (ordem do número segue o Paarman L.)
+                else:                                               #Se par, é indutor
+                    elem_final[i-1] = elementos[i-1]*R              #Indutor
+                    name[i-1] = "L" + str(N-i+1)                    #Nome do elemento + numero (ordem do número segue o Paarman L.)
+        if(topologia == 'LCL'):                                     #Primeiro elemento é indutor
+            for i in range(1, N+1):                                 #Varre todos os elementos
+                if(i%2 != 0):                                       #Se começa com indutor, todos os elementos ímpares são indutores
+                    elem_final[i-1] = elementos[i-1]*R              #Indutor
+                    name[i-1] = "L" + str(N-i+1)                    #Nome do elemento + numero (ordem do número segue o Paarman L.)
+
+                else:                                               #Se par, então é capacitor
+                    elem_final[i-1] = elementos[i-1]/R              #Capacitor
+                    name[i-1] = "C" + str(N-i+1)                    #Nome do elemento + numero (ordem do número segue o Paarman L.)
+        return elem_final, name
+
+
 
 
     def testa_par(self):

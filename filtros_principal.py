@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from cl_fc import *
+from cl_fc import f_btrwrth, eng_string
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -25,10 +25,10 @@ if(choice == 'y'):
     print("Qual topologia deseja usar: ")
     print("[CLC] -> Começa com capacitor\n[LCL] -> Começa com indutor")
     top = input("Topologia: ")
-    valor, nome = filtro.elements(R, fc1, top)
+    valor, nome = filtro.elements(fc1, top, R)
     print("Elementos escalonados:\n")
     for i in range(0, n):
-        print('%s= %s' %(nome[0][i], eng_string(valor[i], si=True)))
+        print('%s= %s' %(nome[i], eng_string(valor[i], si=True)))
     print("\n")
 
 print("Frequência de corte: %f" %fc1)
