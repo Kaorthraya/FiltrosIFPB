@@ -29,6 +29,8 @@ class f_btrwrth:
         self.top = ''
         self.roots = 0
         self.den_norm = 0
+        self.Bp = 0
+        self.Bs = 0
 
     def ordem(self):
         result = 0
@@ -41,6 +43,18 @@ class f_btrwrth:
             result = int(np.ceil(np.log10((np.power(
             ((np.power(10.0, (-self.a_s / 10.0)) - 1.0) / (np.power(10.0, (-self.a_p / 10.0)) - 1.0)),
             0.5))) / np.log10((self.w_s / self.w_p))))
+        if(self.tipo == 'bp'):
+            self.Bp = self.w_p2 - self.w_p1
+            self.Bs = self.w_s2 - self.w_s1
+            result = int(np.ceil(np.log10((np.power(
+            ((np.power(10.0, (-self.a_s / 10.0)) - 1.0) / (np.power(10.0, (-self.a_p / 10.0)) - 1.0)),
+            0.5))) / np.log10((self.Bs / self.Bp))))
+        if(self.tipo == 'bs'):
+            self.Bp = self.w_p2 - self.w_p1
+            self.Bs = self.w_s2 - self.w_s1
+            result = int(np.ceil(np.log10((np.power(
+            ((np.power(10.0, (-self.a_s / 10.0)) - 1.0) / (np.power(10.0, (-self.a_p / 10.0)) - 1.0)),
+            0.5))) / np.log10((self.Bp / self.Bs))))
         return result
 
     def fq_corte(self, **kwargs):
@@ -53,6 +67,10 @@ class f_btrwrth:
             result = self.w_p*(np.power((np.power(10.0, ((-1.0) * self.a_p / 10.0)) - 1.0), (1.0 / (2.0*ordem))))
         elif(self.tipo == 'lp'):
             result = self.w_p / (np.power((np.power(10.0, ((-1.0) * self.a_p / 10.0)) - 1.0), (1.0 / (2.0 * ordem))))
+        elif(self.tipo == 'bp'):
+            result = np.sqrt(self.w_p1*self.w_p2)
+        elif(self.tipo == 'bs'):
+            result = np.sqrt(self.w_s1*self.w_s2)
         self.wc = result
         return result
 
@@ -68,11 +86,13 @@ class f_btrwrth:
         self.roots = S_k
         return self.roots
 
-    def transfunc(self, polos, wc):
+    def transfunc(self, polos, **kwargs):
+        wc = kwargs.get('wc', 0)
+        w0 = kwargs.get('w0', 0)
+        Bw = kwargs.get('bw', self.Bp)
         fcn = 0
         if self.tipo == 'lp':
             self.den_norm = np.real(np.poly(polos))
-            print(self.den_norm)
             denm = np.zeros(len(self.den_norm))
             for i in range(0, len(polos) + 1):
                 denm[i] = self.den_norm[i] * np.power(wc, i)
@@ -86,6 +106,15 @@ class f_btrwrth:
             num = np.zeros(len(polos) + 1)
             num[0] = denm[0]
             fcn = signal.TransferFunction(num, denm)
+        if(self.tipo == 'bp'):
+            self.den_norm = np.real(np.poly(polos))
+            [num, den] = signal.lp2bp(self.den_norm[-1], self.den_norm, w0, Bw)
+            fcn = signal.TransferFunction(num, den)
+        if(self.tipo == 'bs'):
+            self.den_norm = np.real(np.poly(polos))
+            [num, den] = signal.lp2bs(self.den_norm[-1], self.den_norm, w0, Bw)
+            fcn = signal.TransferFunction(num, den)
+
         return fcn
 
     def plot_bode(self, fcn, **kwargs):
@@ -110,9 +139,16 @@ class f_btrwrth:
         ax.margins(x=0)
         ax.margins(y=0.05)  # margem y
         ax.grid(True, which="both")  # grid
-        bp = ax.scatter(self.w_p, self.a_p)  # ponto de projeto de passagem
-        br = ax.scatter(self.w_s, self.a_s)  # ponto de projeto de rejeição
-        ax.legend((bp, br), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
+        if(self.tipo == 'hp'  or self.tipo == 'lp'):
+            bp = ax.scatter(self.w_p, self.a_p)  # ponto de projeto de passagem
+            br = ax.scatter(self.w_s, self.a_s)  # ponto de projeto de rejeição
+            ax.legend((bp, br), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
+        if(self.tipo == 'bp' or self.tipo == 'bs'):
+            bp1 = ax.scatter(self.w_p1, self.a_p)
+            bp2 = ax.scatter(self.w_p2, self.a_p)  # ponto de projeto de passagem
+            bs1 = ax.scatter(self.w_s1, self.a_s)  # ponto de projeto de rejeição
+            bs2 = ax.scatter(self.w_s2, self.a_s)
+            ax.legend((bp1, bp2, bs1, bs2), ("P. Projeto (passagem)", "P. Projeto (passagem)", "P. Projeto (rejeição)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
         ax.yaxis.set_minor_locator(AutoMinorLocator())
         return fig
 
