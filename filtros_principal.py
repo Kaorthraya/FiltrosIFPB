@@ -18,7 +18,7 @@ n = filtro.ordem()
 fc1 = filtro.fq_corte()
 raiz1 = filtro.raizes_normal()
 tf1 = filtro.transfunc(raiz1,fc1)
-
+print(tf1)
 choice = input("Deseja fazer o escalonamento em frequência? [y/n]: ")
 if(choice == 'y'):
     R = float(input("Valor da carga (ohms): "))
@@ -32,7 +32,7 @@ if(choice == 'y'):
     print("\n")
 
 print("Frequência de corte: %f" %fc1)
-
+print(raiz1)
 filtro.exporttxt('saida.txt')
 
 graf1 = filtro.plot_bode(tf1, min_f=1,max_f=10000, points=1000)

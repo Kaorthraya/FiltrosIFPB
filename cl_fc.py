@@ -72,6 +72,7 @@ class f_btrwrth:
         fcn = 0
         if self.tipo == 'lp':
             self.den_norm = np.real(np.poly(polos))
+            print(self.den_norm)
             denm = np.zeros(len(self.den_norm))
             for i in range(0, len(polos) + 1):
                 denm[i] = self.den_norm[i] * np.power(wc, i)

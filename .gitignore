@@ -3,3 +3,4 @@ fig1.png
 *.json
 __pycache__/cl_fc.cpython-35.pyc
 saida.txt
+Chebyshev/Cheby.py
