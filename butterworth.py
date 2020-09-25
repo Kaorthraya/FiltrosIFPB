@@ -29,8 +29,10 @@ class f_btrwrth:
         self.top = ''
         self.roots = 0
         self.den_norm = 0
+        self.Bw = 0
         self.Bp = 0
         self.Bs = 0
+        self.criterio = 0
 
     def ordem(self):
         result = 0
@@ -130,8 +132,8 @@ class f_btrwrth:
             points = kwargs['points']
         else:
             points = 100
-
-        w, amp, fase = fcn.bode(w=np.arange(min_f, max_f, (max_f - min_f)/points))
+        step = (max_f - min_f)/points
+        w, amp, fase = fcn.bode(w=np.arange(min_f, max_f, step))
         fig, ax = plt.subplots()  # cria os plots
         ax.semilogx(w, amp)  # gráfico do tipo semilog
         ax.set(xlabel="Frequência (rad/s)", ylabel="Amplitude em dB",
@@ -143,12 +145,30 @@ class f_btrwrth:
             bp = ax.scatter(self.w_p, self.a_p)  # ponto de projeto de passagem
             br = ax.scatter(self.w_s, self.a_s)  # ponto de projeto de rejeição
             ax.legend((bp, br), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
+            kp = np.int(np.round((self.w_p - min_f)/step))-1
+            kr = np.int(np.round((self.w_s - min_f)/step))-1
+            if(amp[kp] >= self.a_p and amp[kr] <= self.a_s):
+                print('Pontos de projeto ATENDIDOS!')
+                self.criterio = 0
+            else:
+                print('Pontos de projeto NÃO ATENDIDOS!')
+                self.criterio = -1
         if(self.tipo == 'bp' or self.tipo == 'bs'):
             bp1 = ax.scatter(self.w_p1, self.a_p)
             bp2 = ax.scatter(self.w_p2, self.a_p)  # ponto de projeto de passagem
             bs1 = ax.scatter(self.w_s1, self.a_s)  # ponto de projeto de rejeição
             bs2 = ax.scatter(self.w_s2, self.a_s)
             ax.legend((bp1, bp2, bs1, bs2), ("P. Projeto (passagem)", "P. Projeto (passagem)", "P. Projeto (rejeição)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
+            kp1 = np.int(np.round((self.w_p1 - min_f)/step))-1
+            kp2 = np.int(np.round((self.w_p2 - min_f)/step))-1
+            kr1 = np.int(np.round((self.w_s1 - min_f)/step))-1
+            kr2 = np.int(np.round((self.w_s2 - min_f)/step))-1
+            if(amp[kp1] >= self.a_p) and (amp[kp2] >= self.a_p) and (amp[kr1] <= self.a_s) and (amp[kr2] <= self.a_s):
+                print('Pontos de projeto: ATENDIDOS!')
+                self.criterio = 0
+            else:
+                print('Pontos de projeto: NÃO ATENDIDOS!')
+                self.criterio = -1
         ax.yaxis.set_minor_locator(AutoMinorLocator())
         return fig
 
@@ -157,6 +177,7 @@ class f_btrwrth:
             ordem = kwargs['ordem']
         else:
             ordem = self.ordem()
+        bw = kwargs.get('bw', 0)
         self.top = topologia
         self.Rl = R
         nomes = np.empty(ordem, dtype="<U2")
@@ -175,29 +196,83 @@ class f_btrwrth:
                 val, nomes = self.__Zscale(ordem, elem_fpa, R, topologia)
             if(topologia == 'LCL'):
                 val, nomes = self.__Zscale(ordem, elem_fpa, R, topologia)
+        if(self.tipo == 'bp' or self.tipo == 'bs'):
+            val, nomes = self.__Zscale(ordem, esq_dir, R, topologia, bw = bw)
         return val, nomes                                           #Retorna os elementos
 
-    def __Zscale(self, N, elementos, R, topologia):
-        name = np.empty(N, dtype="<U2")
-        elem_final = np.zeros(N)
+    def __Zscale(self, N, elementos, R, topologia, **kwargs):
+        bw = kwargs.get('bw', 0)
+        name = np.empty(2*N, dtype="<U2")
+        if(self.tipo == 'hp' or self.tipo == 'lp'):
+            elem_final2 = np.zeros(N)
+        elif(self.tipo == 'bs' or self.tipo == 'bp'):
+            elem_final2 = np.zeros(2*N)
         if(topologia == 'CLC'):                                     #Primeiro elemento é capacitor
             for i in range(1, N+1):                                 #Varre todos os elementos
                 if(i%2 != 0):                                       #Se começa com capacitor, todos os elementos ímpares são capacitores
-                    elem_final[i-1] = elementos[i-1]/R              #Capacitor
+                    elem_final2[i-1] = elementos[i-1]/R              #Capacitor
                     name[i-1] = "C" + str(N-i+1)                    #Nome do elemento + numero (ordem do número segue o Paarman L.)
                 else:                                               #Se par, é indutor
-                    elem_final[i-1] = elementos[i-1]*R              #Indutor
+                    elem_final2[i-1] = elementos[i-1]*R              #Indutor
                     name[i-1] = "L" + str(N-i+1)                    #Nome do elemento + numero (ordem do número segue o Paarman L.)
         if(topologia == 'LCL'):                                     #Primeiro elemento é indutor
             for i in range(1, N+1):                                 #Varre todos os elementos
                 if(i%2 != 0):                                       #Se começa com indutor, todos os elementos ímpares são indutores
-                    elem_final[i-1] = elementos[i-1]*R              #Indutor
+                    elem_final2[i-1] = elementos[i-1]*R              #Indutor
                     name[i-1] = "L" + str(N-i+1)                    #Nome do elemento + numero (ordem do número segue o Paarman L.)
 
                 else:                                               #Se par, então é capacitor
-                    elem_final[i-1] = elementos[i-1]/R              #Capacitor
+                    elem_final2[i-1] = elementos[i-1]/R              #Capacitor
                     name[i-1] = "C" + str(N-i+1)                    #Nome do elemento + numero (ordem do número segue o Paarman L.)
-        return elem_final, name
+        if(topologia == 's' and self.tipo == 'bp'):
+            for i in range(1, N+1):
+                if(i%2 != 0):
+                    elem_final2[2*i-2] = elementos[i-1]*(R/bw)
+                    elem_final2[2*i-1] = bw*(1/(elementos[i-1]*np.power(self.wc,2)*R))
+                    name[2*i-2] = 'L' + str(N-i+1)
+                    name[2*i-1] = 'C' + str(N-i+1)
+                else:
+                    elem_final2[2*i-2] = elementos[i-1]/(bw*R)
+                    elem_final2[2*i-1] = (bw*R)*(1/(elementos[i-1]*np.power(self.wc,2)))
+                    name[2*i-2] = 'C' + str(N-i+1)
+                    name[2*i-1] = 'L' + str(N-i+1)
+        if(topologia == 'p' and self.tipo == 'bp'):
+            for i in range(1, N+1):
+                if(i%2 == 0):
+                    elem_final2[2*i-2] = elementos[i-1]*(R/bw)
+                    elem_final2[2*i-1] = bw*(1/(elementos[i-1]*np.power(self.wc,2)*R))
+                    name[2*i-2] = 'L' + str(N-i+1)
+                    name[2*i-1] = 'C' + str(N-i+1)
+                else:
+                    elem_final2[2*i-2] = elementos[i-1]/(bw*R)
+                    elem_final2[2*i-1] = (bw*R)*(1/(elementos[i-1]*np.power(self.wc,2)))
+                    name[2*i-2] = 'C' + str(N-i+1)
+                    name[2*i-1] = 'L' + str(N-i+1)
+        if(topologia == 's' and self.tipo == 'bs'):
+            for i in range(1, N+1):
+                if(i%2 != 0):
+                    elem_final2[2*i-2] = R/(bw*elementos[i-1])
+                    elem_final2[2*i-1] = (bw*(elementos[i-1]))/(R*np.power(self.wc,2))
+                    name[2*i-2] = 'L' + str(N-i+1)
+                    name[2*i-1] = 'C' + str(N-i+1)
+                else:
+                    elem_final2[2*i-2] = R*(bw*elementos[i-1])/(np.power(self.wc,2))
+                    elem_final2[2*i-1] = 1/(bw*elementos[i-1]*R)
+                    name[2*i-2] = 'L' + str(N-i+1)
+                    name[2*i-1] = 'C' + str(N-i+1)
+        if(topologia == 'p' and self.tipo == 'bs'):
+            for i in range(1, N+1):
+                if(i%2 == 0):
+                    elem_final2[2*i-2] = R/(bw*elementos[i-1])
+                    elem_final2[2*i-1] = (bw*(elementos[i-1]))/(R*np.power(self.wc,2))
+                    name[2*i-2] = 'L' + str(N-i+1)
+                    name[2*i-1] = 'C' + str(N-i+1)
+                else:
+                    elem_final2[2*i-2] = R*(bw*elementos[i-1])/(np.power(self.wc,2))
+                    elem_final2[2*i-1] = 1/(bw*elementos[i-1]*R)
+                    name[2*i-2] = 'L' + str(N-i+1)
+                    name[2*i-1] = 'C' + str(N-i+1)
+        return elem_final2, name
 
     def exporttxt(self, arq_nome):
         with open(arq_nome, 'w') as f:
@@ -213,15 +288,20 @@ class f_btrwrth:
             f.write("   Elementos escalonados: \n")
             for i in range(0, self.ordem()):
                 f.write('     %s = %s\n' %(nome[i], eng_string(valor[i], si=True)))
-            f.write("\n")
-            
-           
-
+            f.write("\n")         
+       
     def testa_par(self):
         if (self.tipo == 'hp') and ((self.w_s >= self.w_p) or (self.a_s >= self.a_p)):
             raise ValueError("Inversão dos parâmetros para um HP")
         if (self.tipo == 'lp') and ((self.w_s <= self.w_p) or (self.a_s >= self.a_p)):
             raise ValueError("Inversão dos parâmetros para um LP")
+
+    def bw_increase(self, pct):
+        if(self.tipo == 'bs'):
+            pct = pct*(-1)
+        Bw_mod = (self.w_p2-self.w_p1)*(1+pct/100)
+        tf1 = self.transfunc(self.roots, w0 = self.wc, bw = Bw_mod)
+        return tf1, Bw_mod
 
 def eng_string( x, format='%s', si=False):
     sign = ''
@@ -239,4 +319,4 @@ def eng_string( x, format='%s', si=False):
     else:
         exp3_text = 'e%s' % exp3
 
-    return ( '%s'+format+'%s') % ( sign, "{:.2f}".format(x3), exp3_text)
+    return ( '%s'+format+'%s') % ( sign, "{:.3f}".format(x3), exp3_text)
