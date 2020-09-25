@@ -77,13 +77,22 @@ if(resposta.lower() == 'bp' or resposta.lower() == 'bs'):
     else:
         n_bw = Wp2 - Wp1
 
-    print('Escolha a topologia: [S] -> Começa com LC série\n[P] -> Começa com LC paralelo\n')
+    print('Escolha a topologia: \n[S] -> Começa com LC série\n[P] -> Começa com LC paralelo\n')
     top = input('Digite sua escolha: ')
-    R = float(input('Digite o valor da impedância (Rs = RL): '))
+    R = float(input('Digite o valor da impedância (Rs = RL): \n'))
     a, b = filtro.elements(fc1, top.lower(), R, bw = n_bw)
     for i in range(0, 2*n):
-        print('     %s = %s' %(b[i], eng_string(a[i], si=True)))    
+        print('     %s = %s' %(b[i], eng_string(a[i], si=True)))
+else:
+    print('Escolha a topologia: \n[CLC] -> Começa com capacitor\n[LCL] -> Começa com indutor\n')
+    top = input('Digite sua escolha: ')
+    R = float(input('Digite o valor da impedância (Rs = RL): \n'))
+    a, b = filtro.elements(fc1, top.lower(), R)
+    for i in range(0, n):
+        print('     %s = %s' %(b[i], eng_string(a[i], si=True)))
 
+
+plt.show()
 graf1.savefig('fig1.png', dpi = 600)
 
 

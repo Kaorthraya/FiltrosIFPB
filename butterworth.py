@@ -186,15 +186,15 @@ class f_btrwrth:
         esq_dir = elem_table[::-1]                                  #Coloca os elementos na ordem inversa da tabela, para coincidir o primeiro elemento a depender da self.topologia
         if(self.tipo == 'lp'):                                      #Cálculo para FPB
             elem_fpb = esq_dir/wc                                   #Escalonamento em frequência (independe se é L ou C)
-            if(topologia == 'CLC'):                                 #Inicia com capacitor
+            if(topologia == 'clc'):                                 #Inicia com capacitor
                 val, nomes = self.__Zscale(ordem, elem_fpb, R, topologia)
-            if(topologia == 'LCL'):
+            if(topologia == 'lcl'):
                 val, nomes = self.__Zscale(ordem, elem_fpb, R, topologia)
         if(self.tipo == 'hp'):
             elem_fpa = (np.float_power(esq_dir, -1))*(1/wc)                                   #Escalonamento em frequência (independe se é L ou C)
-            if(topologia == 'CLC'):
+            if(topologia == 'clc'):
                 val, nomes = self.__Zscale(ordem, elem_fpa, R, topologia)
-            if(topologia == 'LCL'):
+            if(topologia == 'lcl'):
                 val, nomes = self.__Zscale(ordem, elem_fpa, R, topologia)
         if(self.tipo == 'bp' or self.tipo == 'bs'):
             val, nomes = self.__Zscale(ordem, esq_dir, R, topologia, bw = bw)
@@ -207,7 +207,7 @@ class f_btrwrth:
             elem_final2 = np.zeros(N)
         elif(self.tipo == 'bs' or self.tipo == 'bp'):
             elem_final2 = np.zeros(2*N)
-        if(topologia == 'CLC'):                                     #Primeiro elemento é capacitor
+        if(topologia == 'clc'):                                     #Primeiro elemento é capacitor
             for i in range(1, N+1):                                 #Varre todos os elementos
                 if(i%2 != 0):                                       #Se começa com capacitor, todos os elementos ímpares são capacitores
                     elem_final2[i-1] = elementos[i-1]/R              #Capacitor
@@ -215,7 +215,7 @@ class f_btrwrth:
                 else:                                               #Se par, é indutor
                     elem_final2[i-1] = elementos[i-1]*R              #Indutor
                     name[i-1] = "L" + str(N-i+1)                    #Nome do elemento + numero (ordem do número segue o Paarman L.)
-        if(topologia == 'LCL'):                                     #Primeiro elemento é indutor
+        if(topologia == 'lcl'):                                     #Primeiro elemento é indutor
             for i in range(1, N+1):                                 #Varre todos os elementos
                 if(i%2 != 0):                                       #Se começa com indutor, todos os elementos ímpares são indutores
                     elem_final2[i-1] = elementos[i-1]*R              #Indutor
