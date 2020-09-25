@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from cl_fc import f_btrwrth, eng_string
+from chebyshev import *
+#from butterworth import *
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -14,7 +15,7 @@ if(resposta == 'lp' or resposta == 'hp'):
     as_dB = float(input('Valor da atenuação na banda de rejeição: '))
     Wp = float(input('Valor de frequência (passagem): '))
     Ws = float(input('Valor de frequência (rejeição): '))
-    filtro = f_btrwrth(resposta,a_p = ap_dB,
+    filtro = f_chebyshev(resposta,a_p = ap_dB,
                                 a_s = as_dB,
                                 w_p = Wp,
                                 w_s = Ws)
@@ -25,7 +26,7 @@ elif(resposta == 'bp' or resposta == 'bs'):
     Wp2 = float(input('Valor superior da banda de passagem: '))
     Ws1 = float(input('Valor inferior da banda de rejeição: '))
     Ws2 = float(input('Valor superior da banda de rejeição: '))
-    filtro = f_btrwrth(resposta,a_p = ap_dB,
+    filtro = f_chebyshev(resposta,a_p = ap_dB,
                                 a_s = as_dB,
                                 w_s1 = Ws1,
                                 w_s2 = Ws2,
@@ -41,20 +42,9 @@ if(resposta == 'lp' or resposta == 'hp'):
 else:
     tf1 = filtro.transfunc(raiz1, w0 = fc1)
 
-print(tf1)
-choice = input("Deseja fazer o escalonamento em frequência? [y/n]: ")
-if(choice == 'y'):
-    R = float(input("Valor da carga (ohms): "))
-    print("Qual topologia deseja usar: ")
-    print("[CLC] -> Começa com capacitor\n[LCL] -> Começa com indutor")
-    top = input("Topologia: ")
-    valor, nome = filtro.elements(fc1, top, R)
-    print("Elementos escalonados:\n")
-    for i in range(0, n):
-        print('%s= %s' %(nome[i], eng_string(valor[i], si=True)))
-    print("\n")
+print(n)
 
-graf1 = filtro.plot_bode(tf1, min_f=1,max_f=100000, points=10000)
+graf1 = filtro.plot_bode(tf1, min_f=1,max_f=1e6, points=100e3)
 plt.show()
 graf1.savefig('fig1.png', dpi = 600)
 
