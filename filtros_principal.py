@@ -53,8 +53,8 @@ while(filtro.criterio == -1):
     print('Modificação: aumento ou diminuição de banda')
     ch1 = input('Deseja realizar otimização na largura de banda? [s/n]:')
     flag_opt = 0
-    if(ch1.lower == 's'):
-        pass
+    if(ch1.lower() == 's'):
+        None
     else:
         print('Otimização não realizada. Parâmetros originais preservados\n')
         break
