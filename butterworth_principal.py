@@ -44,9 +44,12 @@ if(resposta == 'lp' or resposta == 'hp'):
 else:
     tf1 = filtro.transfunc(raiz1, w0 = fc1)
 
-graf1 = filtro.plot_bode(tf1, min_f=1,max_f=1e6, points=100e3)
+filtro.graphpoints(tf1, 100e3, 1, 100e3)
+graf1 = filtro.plot_bode(tf1)
 graf1.canvas.set_window_title('TF')
 
+"""
+==========DESCOMENTAR CASO QUEIRA A OTIMIZAÇÃO E COMPONENTES====================
 
 while(filtro.criterio == -1):
     print('Algum critério não foi atendido\n')
@@ -91,6 +94,9 @@ else:
     for i in range(0, n):
         print('     %s = %s' %(b[i], eng_string(a[i], si=True)))
 
+==========DESCOMENTAR CASO QUEIRA A OTIMIZAÇÃO E COMPONENTES====================
+
+"""
 
 plt.show()
 graf1.savefig('fig1.png', dpi = 600)

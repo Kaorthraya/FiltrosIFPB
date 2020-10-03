@@ -4,8 +4,8 @@ from butterworth import *
 from chebyshev import *
 from chebyshev2 import *
 
-filtro_bt = f_btrwrth('BP', w_p1 = 2000 , w_p2 = 5000, w_s1 = 1000, w_s2 = 10000, a_p = -1, a_s = -40)
-filtro_chb1 = f_chebyshev1('BP', w_p1 = 2000 , w_p2 = 5000, w_s1 = 1000, w_s2 = 10000, a_p = -1, a_s = -40)
+filtro_bt = f_btrwrth('bp', w_p1 = 2000 , w_p2 = 5000, w_s1 = 1000, w_s2 = 10000, a_p = -1, a_s = -40)
+filtro_chb1 = f_chebyshev1('bp', w_p1 = 2000 , w_p2 = 5000, w_s1 = 1000, w_s2 = 10000, a_p = -1, a_s = -40)
 filtro_chb2 = f_chebyshev2('bp', w_p1 = 2000 , w_p2 = 5000, w_s1 = 1000, w_s2 = 10000, a_p = -1, a_s = -40)
 
 n_bt = filtro_bt.ordem()

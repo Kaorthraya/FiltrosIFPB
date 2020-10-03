@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from chebyshev import *
+from chebyshev2 import *
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -14,7 +14,7 @@ if(resposta.lower() == 'lp' or resposta.lower() == 'hp'):
     as_dB = float(input('Valor da atenuação na banda de rejeição: '))
     Wp = float(input('Valor de frequência (passagem): '))
     Ws = float(input('Valor de frequência (rejeição): '))
-    filtro = f_chebyshev1(resposta.lower(),a_p = ap_dB,
+    filtro = f_chebyshev2(resposta.lower(),a_p = ap_dB,
                                         a_s = as_dB,
                                         w_p = Wp,
                                         w_s = Ws)
@@ -25,7 +25,7 @@ elif(resposta.lower() == 'bp' or resposta.lower() == 'bs'):
     Wp2 = float(input('Valor superior da banda de passagem: '))
     Ws1 = float(input('Valor inferior da banda de rejeição: '))
     Ws2 = float(input('Valor superior da banda de rejeição: '))
-    filtro = f_chebyshev1(resposta.lower(),a_p = ap_dB,
+    filtro = f_chebyshev2(resposta.lower(),a_p = ap_dB,
                                         a_s = as_dB,
                                         w_s1 = Ws1,
                                         w_s2 = Ws2,
@@ -35,17 +35,17 @@ elif(resposta.lower() == 'bp' or resposta.lower() == 'bs'):
 n = filtro.ordem()
 print('Ordem: %d' %n)
 fc1 = filtro.fq_p()
-polos = filtro.raizes_normal()
+polos, zeros = filtro.raizes_normal()
 
 
 if(resposta == 'lp' or resposta == 'hp'):
-    tf = filtro.transfunc(polos, wp = fc1)
+    tf = filtro.transfunc(zeros, polos, ws = fc1)
     print(tf)
-    filtro.graphpoints(100e3,1,100e3)
+    filtro.graphpoints(1,100e3,100e3)
     filtro.plot_bode()
 else:
-    tf1 = filtro.transfunc(polos, w0 = fc1)
-    filtro.graphpoints(100e3, 1, 100e3)
+    tf1 = filtro.transfunc(zeros, polos, w0 = fc1)
+    filtro.graphpoints(1, 100e3, 100e3)
     filtro.plot_bode()
 plt.show()
 

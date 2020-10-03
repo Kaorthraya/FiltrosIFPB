@@ -26,10 +26,11 @@ class f_chebyshev1:
         self.tipo = tipo
         self.gpdelay = 0
         self.fasedeg = 0
+        self.fcn = 0
         self.w = 0
         self.amp = 0
         self.fase = 0
-        self.wc = 0.0
+        self.wp = 0.0
         self.Rl = 0
         self.top = ''
         self.roots = 0
@@ -45,7 +46,7 @@ class f_chebyshev1:
             result = int(np.ceil(np.arccosh((np.sqrt(np.power(10, -self.a_s/10)-1))/(np.sqrt(np.power(10, -self.a_p/10)-1)))/(np.arccosh(self.w_p/self.w_s))))
         if self.tipo == 'lp':
             result = int(np.ceil(np.arccosh((np.sqrt(np.power(10, -self.a_s/10)-1))/(np.sqrt(np.power(10, -self.a_p/10)-1)))/(np.arccosh(self.w_s/self.w_p))))
-        if(self.tipo == 'BP'):
+        if(self.tipo == 'bp'):
             self.Bp = self.w_p2 - self.w_p1
             self.Bs = self.w_s2 - self.w_s1
             result = int(np.ceil(np.arccosh((np.sqrt(np.power(10, -self.a_s/10)-1))/(np.sqrt(np.power(10, -self.a_p/10)-1)))/(np.arccosh(self.Bs/self.Bp))))
@@ -56,18 +57,17 @@ class f_chebyshev1:
         result = kwargs.get('ord', result)
         return result
         
-    def fq_corte(self):
+    def fq_p(self):
         result = None
-        ordem = self.ordem()
         if(self.tipo == 'hp'):
             result = self.w_p
         elif(self.tipo == 'lp'):
             result = self.w_p
-        elif(self.tipo == 'BP'):
+        elif(self.tipo == 'bp'):
             result = np.sqrt(self.w_p1*self.w_p2)
         elif(self.tipo == 'bs'):
             result = np.sqrt(self.w_s1*self.w_s2)
-        self.wc = result
+        self.wp = result
         return result
 
     def raizes_normal(self, **kwargs):
@@ -85,7 +85,7 @@ class f_chebyshev1:
         return self.roots
 
     def transfunc(self, polos, **kwargs):
-        wc = kwargs.get('wc', 0)
+        wp = kwargs.get('wp', 0)
         w0 = kwargs.get('w0', 0)
         Bw = kwargs.get('bw', self.Bp)
         ordem = kwargs.get('ord', self.ordem())
@@ -94,7 +94,7 @@ class f_chebyshev1:
             self.den_norm = np.real(np.poly(polos))
             denm = np.zeros(len(self.den_norm))
             for i in range(0, len(polos) + 1):
-                denm[i] = self.den_norm[i] * np.power(wc, i)
+                denm[i] = self.den_norm[i] * np.power(wp, i)
             if(ordem%2 == 0):
                 num = denm[-1]*(1/np.sqrt(1+np.power(self.eps,2)))
             else: 
@@ -104,14 +104,14 @@ class f_chebyshev1:
             self.den_norm = np.real(np.poly(polos))
             denm = np.zeros(len(polos) + 1)
             for i in range(0, len(polos) + 1):
-                denm[i] = self.den_norm[len(polos) - i] * np.power(wc, i)
+                denm[i] = self.den_norm[len(polos) - i] * np.power(wp, i)
             num = np.zeros(len(polos) + 1)
             if(self.ordem()%2 == 0):
                 num = denm[-1]*(1/np.sqrt(1+np.power(self.eps,2)))
             else: 
                 num[0] = denm[0]
             fcn = signal.TransferFunction(num, denm)
-        if(self.tipo == 'BP'):
+        if(self.tipo == 'bp'):
             self.den_norm = np.real(np.poly(polos))
             [num, den] = signal.lp2bp(self.den_norm[-1], self.den_norm, w0, Bw)
             if(self.ordem()%2 == 0):
@@ -127,22 +127,21 @@ class f_chebyshev1:
             else: 
                 num[-1] = num[-1]
             fcn = signal.TransferFunction(num, den)
-
+        self.fcn = fcn
         return fcn
 
-    def graphpoints(self, fcn, max_f, min_f, points):
-        self.w, self.amp, self.fasedeg = fcn.bode(w=np.arange(min_f, max_f, (max_f - min_f)/points))
+    def graphpoints(self, min_f, max_f, points):
+        self.w, self.amp, self.fasedeg = self.fcn.bode(w=np.arange(min_f, max_f, (max_f - min_f)/points))
         fase_aj = np.zeros(len(self.fasedeg))
         for i in range(0, len(self.fasedeg)):
-            fase_aj[i] = self.fasedeg[i]*(np.pi/180.0) #AJUSTA A FASE PARA RADIANOS
+            fase_aj[i] = self.fasedeg[i]*(np.pi/180.0)              #AJUSTA A FASE PARA RADIANOS, A DERIVADA DEVE SER FEITA EM RAD PARA O RESULTADO DO GP_DELAY SEM EM SEGUNDOS
         self.fase = fase_aj
 
     def gp_delay(self):
         aux = ((-1)*np.diff(self.fase)/np.diff(self.w))
         self.gpdelay = np.append(aux, 0)        #ADICIONA UM ZERO NO FIM PARA CASAR OS TAMANHOS
 
-    def plot_bode(self, fcn, **kwargs):
-
+    def plot_bode(self, **kwargs):
         fig, ax = plt.subplots()  # cria os plots
         ax.semilogx(self.w, self.amp)  # gráfico do tipo semilog
         ax.set(xlabel="Frequência (rad/s)", ylabel="Amplitude em dB",
@@ -154,7 +153,7 @@ class f_chebyshev1:
             bp = ax.scatter(self.w_p, self.a_p)  # ponto de projeto de passagem
             br = ax.scatter(self.w_s, self.a_s)  # ponto de projeto de rejeição
             ax.legend((bp, br), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
-        if(self.tipo == 'BP' or self.tipo == 'bs'):
+        if(self.tipo == 'bp' or self.tipo == 'bs'):
             bp1 = ax.scatter(self.w_p1, self.a_p)
             bp2 = ax.scatter(self.w_p2, self.a_p)  # ponto de projeto de passagem
             bs1 = ax.scatter(self.w_s1, self.a_s)  # ponto de projeto de rejeição

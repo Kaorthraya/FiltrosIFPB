@@ -23,6 +23,7 @@ class f_chebyshev2:
         self.w_s2 = kwargs.get('w_s2', 0)
         self.w_p1 = kwargs.get('w_p1', 0)
         self.w_p2 = kwargs.get('w_p2', 0)
+        self.fcn = 0
         self.w = 0
         self.amp = 0
         self.fase = 0
@@ -55,7 +56,7 @@ class f_chebyshev2:
         result = kwargs.get('ord', result)
         return result
         
-    def fq_corte(self):
+    def fq_p(self):
         result = None
         if(self.tipo == 'hp'):
             result = self.w_s
@@ -65,7 +66,7 @@ class f_chebyshev2:
             result = np.sqrt(self.w_p1*self.w_p2)
         elif(self.tipo == 'bs'):
             result = np.sqrt(self.w_s1*self.w_s2)
-        self.wc = result
+        self.ws = result
         return result
 
     def raizes_normal(self, **kwargs):
@@ -98,20 +99,23 @@ class f_chebyshev2:
         return (self.roots, self.zer)
 
     def transfunc(self, zeros, polos, **kwargs):
-        wc = kwargs.get('wc', 0)
+        ws = kwargs.get('ws', 0)
         w0 = kwargs.get('w0', 0)
         Bw = kwargs.get('bw', self.Bs)
         ordem = kwargs.get('ord', self.ordem())
         fcn = 0
         if self.tipo == 'lp':
+            if(ordem == 1):
+                self.num_norm = np.array([1])
+            else:
+                self.num_norm = np.real(np.poly(zeros))
             self.den_norm = np.real(np.poly(polos))
-            self.num_norm = np.real(np.poly(zeros))
             numm = self.num_norm
             denm = self.den_norm
             for i in range(0, ordem+1):
-                denm[i] = denm[i]*pow(wc, i)
+                denm[i] = denm[i]*pow(ws, i)
             for i in range(0, len(zeros)+1):
-                numm[i] = numm[i]*pow(wc, i)
+                numm[i] = numm[i]*pow(ws, i)
             k = denm[-1]/numm[-1]
             fcn = signal.TransferFunction(k*numm, denm)
         if(self.tipo == 'hp'):
@@ -120,11 +124,12 @@ class f_chebyshev2:
             numm = self.num_norm[::-1]
             denm = self.den_norm[::-1]
             for i in range(0, ordem+1):
-                denm[i] = denm[i]*pow(wc, i)
+                denm[i] = denm[i]*pow(ws, i)
             for i in range(0, len(zeros)+1):
-                numm[i] = numm[i]*pow(wc, i)
+                numm[i] = numm[i]*pow(ws, i)
             if(ordem%2 != 0):
                 numm = np.append(numm, 0)
+            k = denm[0]/numm[0]
             fcn = signal.TransferFunction(k*numm, denm)
         if(self.tipo == 'bp'):
             self.den_norm = np.real(np.poly(polos))
@@ -132,10 +137,11 @@ class f_chebyshev2:
             k = self.den_norm[-1]/self.num_norm[-1]
             numm, denm = signal.lp2bp(k*self.num_norm, self.den_norm, w0, Bw)
             fcn = signal.TransferFunction(numm, denm)
+        self.fcn = fcn
         return fcn
 
-    def graphpoints(self, fcn, min_f, max_f, points):
-        self.w, self.amp, self.fase = fcn.bode(w=np.arange(min_f, max_f, (max_f - min_f)/points))
+    def graphpoints(self, min_f, max_f, points):
+        self.w, self.amp, self.fase = self.fcn.bode(w=np.arange(min_f, max_f, (max_f - min_f)/points))
 
     def plot_bode(self, **kwargs):
         

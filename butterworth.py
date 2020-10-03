@@ -48,7 +48,7 @@ class f_btrwrth:
             result = int(np.ceil(np.log10((np.power(
             ((np.power(10.0, (-self.a_s / 10.0)) - 1.0) / (np.power(10.0, (-self.a_p / 10.0)) - 1.0)),
             0.5))) / np.log10((self.w_s / self.w_p))))
-        if(self.tipo == 'BP'):
+        if(self.tipo == 'bp'):
             self.Bp = self.w_p2 - self.w_p1
             self.Bs = self.w_s2 - self.w_s1
             result = int(np.ceil(np.log10((np.power(
@@ -73,7 +73,7 @@ class f_btrwrth:
             result = self.w_p*(np.power((np.power(10.0, ((-1.0) * self.a_p / 10.0)) - 1.0), (1.0 / (2.0*ordem))))
         elif(self.tipo == 'lp'):
             result = self.w_p / (np.power((np.power(10.0, ((-1.0) * self.a_p / 10.0)) - 1.0), (1.0 / (2.0 * ordem))))
-        elif(self.tipo == 'BP'):
+        elif(self.tipo == 'bp'):
             result = np.sqrt(self.w_p1*self.w_p2)
         elif(self.tipo == 'bs'):
             result = np.sqrt(self.w_s1*self.w_s2)
@@ -110,7 +110,7 @@ class f_btrwrth:
             num = np.zeros(len(polos) + 1)
             num[0] = denm[0]
             fcn = signal.TransferFunction(num, denm)
-        if(self.tipo == 'BP'):
+        if(self.tipo == 'bp'):
             self.den_norm = np.real(np.poly(polos))
             [num, den] = signal.lp2bp(self.den_norm[-1], self.den_norm, w0, Bw)
             fcn = signal.TransferFunction(num, den)
@@ -122,7 +122,29 @@ class f_btrwrth:
         return fcn
 
     def graphpoints(self, fcn, max_f, min_f, points):
-        self.w, self.amp, self.fase = fcn.bode(w=np.arange(min_f, max_f, (max_f - min_f)/points))
+        dt = (max_f - min_f)/points
+        self.w, self.amp, self.fase = fcn.bode(w=np.arange(min_f, max_f, dt))
+        if(self.tipo == 'hp'  or self.tipo == 'lp'):
+            kp = np.int(np.round((self.w_p - min_f)/dt))-1
+            kr = np.int(np.round((self.w_s - min_f)/dt))-1
+            if(self.amp[kp] >= self.a_p and self.amp[kr] <= self.a_s):
+                print('Pontos de projeto ATENDIDOS!')
+                self.criterio = 0
+            else:
+                print('Pontos de projeto NÃO ATENDIDOS!')
+                self.criterio = -1
+        if(self.tipo == 'bp' or self.tipo == 'bs'):
+            kp1 = np.int(np.round((self.w_p1 - min_f)/dt))-1
+            kp2 = np.int(np.round((self.w_p2 - min_f)/dt))-1
+            kr1 = np.int(np.round((self.w_s1 - min_f)/dt))-1
+            kr2 = np.int(np.round((self.w_s2 - min_f)/dt))-1
+            if(self.amp[kp1] >= self.a_p) and (self.amp[kp2] >= self.a_p) and (self.amp[kr1] <= self.a_s) and (self.amp[kr2] <= self.a_s):
+                print('Pontos de projeto: ATENDIDOS!')
+                self.criterio = 0
+            else:
+                print('Pontos de projeto: NÃO ATENDIDOS!')
+                self.criterio = -1
+
 
     def plot_bode(self, fcn, **kwargs):
      
@@ -130,37 +152,19 @@ class f_btrwrth:
         ax.semilogx(self.w, self.amp)  # gráfico do tipo semilog
         ax.set(xlabel="Frequência (rad/s)", ylabel="Amplitude em dB",
                title="Resposta em amplitude (BTRWRTH n = %d)" %self.ordem()) # configuração de plot label
-        ax.margins(x=0)
-        ax.margins(y=0.05)  # margem y
-        ax.grid(True, which="both")  # grid
-        if(self.tipo == 'hp'  or self.tipo == 'lp'):
+        if(self.tipo == 'lp' or self.tipo == 'hp'):
             bp = ax.scatter(self.w_p, self.a_p)  # ponto de projeto de passagem
             br = ax.scatter(self.w_s, self.a_s)  # ponto de projeto de rejeição
             ax.legend((bp, br), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
-            #kp = np.int(np.round((self.w_p - min_f)/step))-1
-            #kr = np.int(np.round((self.w_s - min_f)/step))-1
-            #if(self.amp[kp] >= self.a_p and self.amp[kr] <= self.a_s):
-            #    print('Pontos de projeto ATENDIDOS!')
-            #    self.criterio = 0
-            #else:
-            #    print('Pontos de projeto NÃO ATENDIDOS!')
-            #    self.criterio = -1
-        #if(self.tipo == 'bp' or self.tipo == 'bs'):
-        #    bp1 = ax.scatter(self.w_p1, self.a_p)
-        #    bp2 = ax.scatter(self.w_p2, self.a_p)  # ponto de projeto de passagem
-        #    bs1 = ax.scatter(self.w_s1, self.a_s)  # ponto de projeto de rejeição
-        #    bs2 = ax.scatter(self.w_s2, self.a_s)
-        #    ax.legend((bp1, bp2, bs1, bs2), ("P. Projeto (passagem)", "P. Projeto (passagem)", "P. Projeto (rejeição)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
-            #kp1 = np.int(np.round((self.w_p1 - min_f)/step))-1
-            #kp2 = np.int(np.round((self.w_p2 - min_f)/step))-1
-            #kr1 = np.int(np.round((self.w_s1 - min_f)/step))-1
-            #kr2 = np.int(np.round((self.w_s2 - min_f)/step))-1
-        #    if(self.amp[kp1] >= self.a_p) and (self.amp[kp2] >= self.a_p) and (self.amp[kr1] <= self.a_s) and (self.amp[kr2] <= self.a_s):
-        #        print('Pontos de projeto: ATENDIDOS!')
-        #        self.criterio = 0
-        #    else:
-        #        print('Pontos de projeto: NÃO ATENDIDOS!')
-        #        self.criterio = -1
+        elif(self.tipo == 'bp' or self.tipo == 'bs'):
+            bp1 = ax.scatter(self.w_p1, self.a_p)
+            bp2 = ax.scatter(self.w_p2, self.a_p)  # ponto de projeto de passagem
+            bs1 = ax.scatter(self.w_s1, self.a_s)  # ponto de projeto de rejeição
+            bs2 = ax.scatter(self.w_s2, self.a_s)
+            ax.legend((bp1, bp2, bs1, bs2), ("P. Projeto (passagem)", "P. Projeto (passagem)", "P. Projeto (rejeição)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
+        ax.margins(x=0)
+        ax.margins(y=0.05)  # margem y
+        ax.grid(True, which="both")  # grid
         ax.yaxis.set_minor_locator(AutoMinorLocator())
         return fig
 
@@ -188,7 +192,7 @@ class f_btrwrth:
                 val, nomes = self.__Zscale(ordem, elem_fpa, R, topologia)
             if(topologia == 'lcl'):
                 val, nomes = self.__Zscale(ordem, elem_fpa, R, topologia)
-        if(self.tipo == 'BP' or self.tipo == 'bs'):
+        if(self.tipo == 'bp' or self.tipo == 'bs'):
             val, nomes = self.__Zscale(ordem, esq_dir, R, topologia, bw = bw)
         return val, nomes                                           #Retorna os elementos
 
@@ -197,7 +201,7 @@ class f_btrwrth:
         name = np.empty(2*N, dtype="<U2")
         if(self.tipo == 'hp' or self.tipo == 'lp'):
             elem_final2 = np.zeros(N)
-        elif(self.tipo == 'bs' or self.tipo == 'BP'):
+        elif(self.tipo == 'bs' or self.tipo == 'bp'):
             elem_final2 = np.zeros(2*N)
         if(topologia == 'clc'):                                     #Primeiro elemento é capacitor
             for i in range(1, N+1):                                 #Varre todos os elementos
@@ -216,7 +220,7 @@ class f_btrwrth:
                 else:                                               #Se par, então é capacitor
                     elem_final2[i-1] = elementos[i-1]/R              #Capacitor
                     name[i-1] = "C" + str(N-i+1)                    #Nome do elemento + numero (ordem do número segue o Paarman L.)
-        if(topologia == 's' and self.tipo == 'BP'):
+        if(topologia == 's' and self.tipo == 'bp'):
             for i in range(1, N+1):
                 if(i%2 != 0):
                     elem_final2[2*i-2] = elementos[i-1]*(R/bw)
@@ -228,7 +232,7 @@ class f_btrwrth:
                     elem_final2[2*i-1] = (bw*R)*(1/(elementos[i-1]*np.power(self.wc,2)))
                     name[2*i-2] = 'C' + str(N-i+1)
                     name[2*i-1] = 'L' + str(N-i+1)
-        if(topologia == 'p' and self.tipo == 'BP'):
+        if(topologia == 'p' and self.tipo == 'bp'):
             for i in range(1, N+1):
                 if(i%2 == 0):
                     elem_final2[2*i-2] = elementos[i-1]*(R/bw)
