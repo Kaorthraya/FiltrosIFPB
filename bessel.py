@@ -21,6 +21,7 @@ class f_bessel:
         self.amp = 0
         self.fase = 0
         self.tipo = tipo
+        self.gpdelay = 0
 
     def coeff(self, N):
         aux = np.zeros(N+1, dtype=float)
@@ -39,6 +40,7 @@ class f_bessel:
         self.max_f = max_f
         self.step = float((max_f - min_f)/(num_points))
         self.w, self.amp, self.fase = self.tf.bode(w = np.arange(min_f, max_f, self.step))
+        self.fase = self.fase*(np.pi/180.0)
 
     def wp_norm(self, tol, itmax):
         #Algoritmo Pégaso
@@ -91,9 +93,13 @@ class f_bessel:
 
     def plot_scatter(self, ax):
         if(self.tipo == 'lp' or self.tipo == 'hp'):
-            bp = ax.scatter(self.w_p, self.a_p)  # ponto de projeto de passagem
-            br = ax.scatter(self.w_s, self.a_s)  # ponto de projeto de rejeição
-            ax.legend((bp, br), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
+            bp = ax.scatter(self.w_p, self.a_p, color = 'green')  # ponto de projeto de passagem
+            br = ax.scatter(self.w_s, self.a_s, color = 'red')  # ponto de projeto de rejeição
+            ax.legend((bp, br), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower right', fontsize=8)
+
+    def gp_delay(self):
+        gd = (-1)*(np.diff((self.fase))/np.diff(self.w))
+        self.gpdelay = np.append(gd, 0)  
 
     def index(self, freq):
         ind = np.int(np.round((freq - self.min_f)/self.step))
