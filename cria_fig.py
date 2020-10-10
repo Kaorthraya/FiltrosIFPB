@@ -13,8 +13,8 @@ n_chb1 = filtro_chb1.ordem()
 n_chb2 = filtro_chb2.ordem()
 
 fc_bt = filtro_bt.fq_corte()
-fc_chb1 = filtro_chb1.fq_corte()
-fc_chb2 = filtro_chb2.fq_corte()
+fc_chb1 = filtro_chb1.fq_p()
+fc_chb2 = filtro_chb2.fq_p()
 
 r_bt = filtro_bt.raizes_normal()
 p_chb1 = filtro_chb1.raizes_normal()
@@ -25,8 +25,8 @@ tf_chb1 = filtro_chb1.transfunc(p_chb1, w0 = fc_chb1)
 tf_chb2 = filtro_chb2.transfunc(z_chb2, p_chb2, w0 = fc_chb2)
 
 filtro_bt.graphpoints(tf_bt, 500e3, 10, 500e3)
-filtro_chb1.graphpoints(tf_chb1, 500e3, 10, 500e3)
-filtro_chb2.graphpoints(tf_chb2, 500e3, 10, 500e3)
+filtro_chb1.graphpoints(500e3, 10, 500e3)
+filtro_chb2.graphpoints(500e3, 10, 500e3)
 
 fig1 = plt.figure(1)
 plt.semilogx(filtro_bt.w, filtro_bt.amp, label = 'Butterworth: n = %d' %n_bt)
