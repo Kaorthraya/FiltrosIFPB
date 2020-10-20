@@ -17,7 +17,7 @@ while(ordem <= ordem_max and filtro.criterio == -1):
         den = filtro.coeff(ordem)
         tf = filtro.tf_norm()                   #Gera os coeficientes de Bessel
         filtro.points(0.01, 5, 10e3)            #Gera pontos pro gráfico não normalizado
-        ind, err = filtro.wp_norm(0.001, 100)   #seta ordem e tolerância do Pégaso
+        ind, err = filtro.wp_norm(0.01, 100)   #seta ordem e tolerância do Pégaso
         if(err == True):
             break
         else:
@@ -34,7 +34,7 @@ while(ordem <= ordem_max and filtro.criterio == -1):
         ordem = ordem+1                         #Itera a ordem
 
 if(filtro.criterio == 0):
-    print('CONVERGIU!')
+    print('\nCONVERGIU!')
     print('Ordem aceita: %d' %(ordem-1))
 
     #Configurações de plotagem da magnitude
@@ -48,12 +48,18 @@ if(filtro.criterio == 0):
     ax.set_ylabel('Magnitude em dB')
     ax.set_xlabel('Frequência em rad/s') 
     ax.set_ylim(-100, 5)
-    plt.axvline(wp, color = 'green')
-    ax.axvspan(wp, filtro.w[-1], alpha=0.1, color='green')
-    plt.axvline(ws, color = 'red')
-    ax.axvspan(0, ws, alpha=0.1, color='red')
+    if(resposta == 'hp'):
+        plt.axvline(wp, color = 'green')
+        ax.axvspan(wp, filtro.w[-1], alpha=0.1, color='green')
+        plt.axvline(ws, color = 'red')
+        ax.axvspan(0, ws, alpha=0.1, color='red')
+    elif(resposta == 'lp'):
+        plt.axvline(wp, color = 'green')
+        ax.axvspan(0, wp, alpha=0.1, color='green')
+        plt.axvline(ws, color = 'red')
+        ax.axvspan(ws, filtro.w[-1], alpha=0.1, color='red')
     filtro.plot_scatter(ax)
-    plt.savefig('mag.png', dpi=600)
+    #plt.savefig('mag.png', dpi=600)
     
     #Configuração de plotagem da fase
     fig2 = plt.figure(2)
@@ -65,11 +71,17 @@ if(filtro.criterio == 0):
     ax.set_ylabel('Fase em radianos')
     ax.set_xlabel('Frequência em rad/s')
     ax.grid(True, which="both")
-    plt.axvline(wp, color = 'green')
-    a1 = ax.axvspan(wp, filtro.w[-1], alpha=0.1, color='green')
-    ax.axvspan(0, ws, alpha=0.1, color='red')
-    plt.axvline(ws, color = 'red')
-    plt.savefig('fase.png', dpi=600)
+    if(resposta == 'hp'):
+        plt.axvline(wp, color = 'green')
+        ax.axvspan(wp, filtro.w[-1], alpha=0.1, color='green')
+        plt.axvline(ws, color = 'red')
+        ax.axvspan(0, ws, alpha=0.1, color='red')
+    elif(resposta == 'lp'):
+        plt.axvline(wp, color = 'green')
+        ax.axvspan(0, wp, alpha=0.1, color='green')
+        plt.axvline(ws, color = 'red')
+        ax.axvspan(ws, filtro.w[-1], alpha=0.1, color='red')
+    #plt.savefig('fase.png', dpi=600)
 
     #Configuração de plotagem do Group delay
     fig3 = plt.figure(3)
@@ -78,16 +90,21 @@ if(filtro.criterio == 0):
     ax.semilogx(filtro.w, filtro.gpdelay)
     ax.margins(x=0)
     ax.margins(y=0.05)
-    ax.set_ylim(-4e-5, 4e-5)
     ax.set_title('Delay de grupo')
     ax.set_ylabel('Delay em segundos')
     ax.set_xlabel('Frequência em rad/s')
     ax.grid(True, which="both")
-    plt.axvline(wp, color = 'green')
-    plt.axvline(ws, color = 'red')
-    ax.axvspan(wp, filtro.w[-1], alpha=0.1, color='green')
-    ax.axvspan(0, ws, alpha=0.1, color='red')
-    plt.savefig('gd.png', dpi=600)
+    if(resposta == 'hp'):
+        plt.axvline(wp, color = 'green')
+        ax.axvspan(wp, filtro.w[-1], alpha=0.1, color='green')
+        plt.axvline(ws, color = 'red')
+        ax.axvspan(0, ws, alpha=0.1, color='red')
+    elif(resposta == 'lp'):
+        plt.axvline(wp, color = 'green')
+        ax.axvspan(0, wp, alpha=0.1, color='green')
+        plt.axvline(ws, color = 'red')
+        ax.axvspan(ws, filtro.w[-1], alpha=0.1, color='red')
+    #plt.savefig('gd.png', dpi=600)
     plt.show()
 else:
     print('FIltro NÃO convergiu')
