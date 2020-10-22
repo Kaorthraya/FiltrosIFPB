@@ -23,7 +23,7 @@ class f_btrwrth:
         self.w_s2 = kwargs.get('w_s2', 0)
         self.w_p1 = kwargs.get('w_p1', 0)
         self.w_p2 = kwargs.get('w_p2', 0)
-        self.g_virtual = 0
+        self.G_bp = 0
         self.tipo = tipo
         self.w = 0
         self.amp = 0
@@ -38,17 +38,16 @@ class f_btrwrth:
         self.Bs = 0
         self.criterio = 0
 
-    def ganho_virtual(self):
-        if(self.a_p >= 0):
-            self.g_virtual = -(self.a_p + 5)
-            self.a_s = self.a_s + self.g_virtual
-            self.a_p = self.a_p + self.g_virtual
-            print(self.a_s)
-            print(self.g_virtual)
+    def ganho_bp(self, G):
+        if(G >= self.a_p):
+            self.G_bp = -G
+            self.a_s = self.a_s + self.G_bp
+            self.a_p = self.a_p + self.G_bp
+        else:
+            raise ValueError("A atenuação na banda de passagem deve ser menor que o ganho na banda de passagem")
 
     def ordem(self, **kwargs):
         result = 0
-        self.ganho_virtual()
         if self.tipo == 'hp':
             result = int(np.ceil(np.log10((np.power(
             ((np.power(10.0, (-self.a_s / 10.0)) - 1.0) / (np.power(10.0, (-self.a_p / 10.0)) - 1.0)),
@@ -110,7 +109,7 @@ class f_btrwrth:
             for i in range(0, len(polos) + 1):
                 denm[i] = self.den_norm[i] * np.power(wc, i)
             num = denm[-1]
-            fcn = signal.TransferFunction(num, denm)
+            fcn = signal.TransferFunction((pow(10, -self.G_bp/20.0))*num, denm)
         if self.tipo == 'hp':
             self.den_norm = np.real(np.poly(polos))
             denm = np.zeros(len(polos) + 1)
@@ -118,7 +117,7 @@ class f_btrwrth:
                 denm[i] = self.den_norm[len(polos) - i] * np.power(wc, i)
             num = np.zeros(len(polos) + 1)
             num[0] = denm[0]
-            fcn = signal.TransferFunction(num, denm)
+            fcn = signal.TransferFunction((pow(10, -self.G_bp/20.0))*num, denm)
         if(self.tipo == 'bp'):
             self.den_norm = np.real(np.poly(polos))
             [num, den] = signal.lp2bp(self.den_norm[-1], self.den_norm, w0, Bw)
@@ -133,11 +132,10 @@ class f_btrwrth:
     def graphpoints(self, fcn, max_f, min_f, points):
         dt = (max_f - min_f)/points
         self.w, self.amp, self.fase = fcn.bode(w=np.arange(min_f, max_f, dt))
-        self.amp = self.amp - self.g_virtual
         if(self.tipo == 'hp'  or self.tipo == 'lp'):
             kp = np.int(np.round((self.w_p - min_f)/dt))-1
             kr = np.int(np.round((self.w_s - min_f)/dt))-1
-            if(self.amp[kp] >= (self.a_p - self.g_virtual) and self.amp[kr] <= (self.a_s - self.g_virtual)):
+            if(self.amp[kp] >= (self.a_p - self.G_bp) and self.amp[kr] <= (self.a_s - self.G_bp)):
                 print('Pontos de projeto ATENDIDOS!')
                 self.criterio = 0
             else:
@@ -163,8 +161,8 @@ class f_btrwrth:
         ax.set(xlabel="Frequência (rad/s)", ylabel="Amplitude em dB",
                title="Resposta em amplitude (BTRWRTH n = %d)" %self.ordem()) # configuração de plot label
         if(self.tipo == 'lp' or self.tipo == 'hp'):
-            bp = ax.scatter(self.w_p, self.a_p - self.g_virtual)  # ponto de projeto de passagem
-            br = ax.scatter(self.w_s, self.a_s - self.g_virtual)  # ponto de projeto de rejeição
+            bp = ax.scatter(self.w_p, self.a_p - self.G_bp)  # ponto de projeto de passagem
+            br = ax.scatter(self.w_s, self.a_s - self.G_bp)  # ponto de projeto de rejeição
             ax.legend((bp, br), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
         elif(self.tipo == 'bp' or self.tipo == 'bs'):
             bp1 = ax.scatter(self.w_p1, self.a_p)

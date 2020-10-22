@@ -33,6 +33,13 @@ elif(resposta.lower() == 'bp' or resposta.lower() == 'bs'):
                                         w_p1 = Wp1,
                                         w_p2 = Wp2)
 
+tipo = input('O filtro é ativo [A] ou passivo [P]: ')
+if(tipo.lower() == 'a'):
+    G = float(input('Ganho na banda de passagem (dB): '))
+    filtro.ganho_bp(G)
+else:
+    filtro.ganho_bp(1)
+
 n = filtro.ordem()
 fc1 = filtro.fq_corte()
 raiz1 = filtro.raizes_normal()
@@ -46,6 +53,8 @@ else:
 
 filtro.graphpoints(tf1, 100e3, 1, 100e3)
 graf1 = filtro.plot_bode(tf1)
+print("\nFunção de transferência do filtro: ")
+print(tf1)
 graf1.canvas.set_window_title('TF')
 
 """

@@ -38,6 +38,17 @@ class f_chebyshev1:
         self.Bp = 0
         self.Bs = 0
         self.eps = 0
+        self.G_bp = 0
+
+
+    def ganho_bp(self, G):
+        if(G >= self.a_p):
+            self.G_bp = -G
+            self.a_s = self.a_s + self.G_bp
+            self.a_p = self.a_p + self.G_bp
+        else:
+            raise ValueError("A atenuação na banda de passagem deve ser menor que o ganho na banda de passagem")
+
 
     def ordem(self, **kwargs):
         result = 0
@@ -99,7 +110,7 @@ class f_chebyshev1:
                 num = denm[-1]*(1/np.sqrt(1+np.power(self.eps,2)))
             else: 
                 num = denm[-1]
-            fcn = signal.TransferFunction(num, denm)
+            fcn = signal.TransferFunction(pow(10, -self.G_bp/20.0)*num, denm)
         if self.tipo == 'hp':
             self.den_norm = np.real(np.poly(polos))
             denm = np.zeros(len(polos) + 1)
@@ -107,10 +118,10 @@ class f_chebyshev1:
                 denm[i] = self.den_norm[len(polos) - i] * np.power(wp, i)
             num = np.zeros(len(polos) + 1)
             if(self.ordem()%2 == 0):
-                num = denm[-1]*(1/np.sqrt(1+np.power(self.eps,2)))
+                num[0] = denm[0]*(1/np.sqrt(1+np.power(self.eps,2)))
             else: 
                 num[0] = denm[0]
-            fcn = signal.TransferFunction(num, denm)
+            fcn = signal.TransferFunction(pow(10, -self.G_bp/20.0)*num, denm)
         if(self.tipo == 'bp'):
             self.den_norm = np.real(np.poly(polos))
             [num, den] = signal.lp2bp(self.den_norm[-1], self.den_norm, w0, Bw)
@@ -150,8 +161,8 @@ class f_chebyshev1:
         ax.margins(y=0.05)  # margem y
         ax.grid(True, which="both")  # grid
         if(self.tipo == 'hp'  or self.tipo == 'lp'):
-            bp = ax.scatter(self.w_p, self.a_p)  # ponto de projeto de passagem
-            br = ax.scatter(self.w_s, self.a_s)  # ponto de projeto de rejeição
+            bp = ax.scatter(self.w_p, self.a_p - self.G_bp)  # ponto de projeto de passagem
+            br = ax.scatter(self.w_s, self.a_s - self.G_bp)  # ponto de projeto de rejeição
             ax.legend((bp, br), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
         if(self.tipo == 'bp' or self.tipo == 'bs'):
             bp1 = ax.scatter(self.w_p1, self.a_p)
