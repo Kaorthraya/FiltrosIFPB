@@ -156,7 +156,7 @@ class f_chebyshev1:
         fig, ax = plt.subplots()  # cria os plots
         ax.semilogx(self.w, self.amp)  # gráfico do tipo semilog
         ax.set(xlabel="Frequência (rad/s)", ylabel="Amplitude em dB",
-               title="Resposta em amplitude (BTRWRTH n = %d)" %self.ordem()) # configuração de plot label
+               title="Resposta em amplitude (Chebyshev I -  ordem = %d)" %self.ordem()) # configuração de plot label
         ax.margins(x=0)
         ax.margins(y=0.05)  # margem y
         ax.grid(True, which="both")  # grid

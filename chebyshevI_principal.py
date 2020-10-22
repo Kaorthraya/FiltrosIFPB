@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy import signal
 
-print('Cálculo de filtros Butterworth\n')
+print('Cálculo de filtros Chebyshev I\n')
 print('Opções de resposta:\n[lp] - lowpass\n[hp] - highpass\n[bp] - bandpass\n[bs] - bandstop\n')
 resposta = input('Digite a resposta do filtro: ')
 if(resposta.lower() == 'lp' or resposta.lower() == 'hp'):
@@ -45,7 +45,7 @@ fc1 = filtro.fq_p()
 polos = filtro.raizes_normal()
 
 
-if(resposta == 'lp' or resposta == 'hp'):
+if(resposta.lower() == 'lp' or resposta.lower() == 'hp'):
     tf = filtro.transfunc(polos, wp = fc1)
     filtro.graphpoints(1,1e6,1e6)
     filtro.plot_bode()

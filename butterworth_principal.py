@@ -46,7 +46,7 @@ raiz1 = filtro.raizes_normal()
 
 print('Ordem: %d' %n)
 
-if(resposta == 'lp' or resposta == 'hp'):
+if(resposta.lower() == 'lp' or resposta.lower() == 'hp'):
     tf1 = filtro.transfunc(raiz1, wc = fc1)
 else:
     tf1 = filtro.transfunc(raiz1, w0 = fc1)
