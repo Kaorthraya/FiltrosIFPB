@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from chebyshev import *
+from printft import printTF
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -55,7 +56,7 @@ else:
     filtro.plot_bode()
 
 print("\nFunção de transferência do filtro: ")
-print(tf)
+printTF(tf.num, tf.den)
 
 plt.show()
 

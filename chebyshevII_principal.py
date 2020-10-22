@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from chebyshev2 import *
+from printft import printTF
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -40,7 +41,7 @@ polos, zeros = filtro.raizes_normal()
 
 if(resposta == 'lp' or resposta == 'hp'):
     tf = filtro.transfunc(zeros, polos, ws = fc1)
-    print(tf)
+    printTF(tf.num, tf.den)
     filtro.graphpoints(1,100e3,100e3)
     filtro.plot_bode()
 else:

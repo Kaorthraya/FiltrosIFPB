@@ -2,6 +2,7 @@
 
 #from chebyshev import *
 from butterworth import *
+from printft import printTF
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -38,7 +39,7 @@ if(tipo.lower() == 'a'):
     G = float(input('Ganho na banda de passagem (dB): '))
     filtro.ganho_bp(G)
 else:
-    filtro.ganho_bp(1)
+    filtro.ganho_bp(0)
 
 n = filtro.ordem()
 fc1 = filtro.fq_corte()
@@ -54,7 +55,7 @@ else:
 filtro.graphpoints(tf1, 100e3, 1, 100e3)
 graf1 = filtro.plot_bode(tf1)
 print("\nFunção de transferência do filtro: ")
-print(tf1)
+printTF(tf1.num, tf1.den)
 graf1.canvas.set_window_title('TF')
 
 """
