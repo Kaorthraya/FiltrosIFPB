@@ -34,16 +34,16 @@ elif(resposta.lower() == 'bp' or resposta.lower() == 'bs'):
                                         w_p1 = Wp1,
                                         w_p2 = Wp2)
 
-tipo = input('O filtro é ativo [A] ou passivo [P]: ')
-if(tipo.lower() == 'a'):
-    G = float(input('Ganho na banda de passagem (dB): '))
-    filtro.ganho_bp(G)
+if(ap_dB >= 0):
+    Ganho = float(input('Ganho na banda de passagem (dB): '))
+    filtro.ganho_bp(Ganho)
 else:
     filtro.ganho_bp(0)
 
 n = filtro.ordem()
 fc1 = filtro.fq_corte()
 raiz1 = filtro.raizes_normal()
+print(raiz1)
 
 print('Ordem: %d' %n)
 
@@ -52,14 +52,11 @@ if(resposta.lower() == 'lp' or resposta.lower() == 'hp'):
 else:
     tf1 = filtro.transfunc(raiz1, w0 = fc1)
 
-filtro.graphpoints(tf1, 100e3, 1, 100e3)
+filtro.graphpoints(tf1, 1e6, 0, 1e6)
 graf1 = filtro.plot_bode(tf1)
 print("\nFunção de transferência do filtro: ")
-printTF(tf1.num, tf1.den)
+#printTF(tf1.num, tf1.den)
 graf1.canvas.set_window_title('TF')
-
-"""
-==========DESCOMENTAR CASO QUEIRA A OTIMIZAÇÃO E COMPONENTES====================
 
 while(filtro.criterio == -1):
     print('Algum critério não foi atendido\n')
@@ -73,12 +70,31 @@ while(filtro.criterio == -1):
         break
     pct = float(input('Digite o valor em porcentagem do aumento/diminuição de banda: '))
     tf, n_bw = filtro.bw_increase(pct)
+    filtro.graphpoints(tf, 100e3, 1, 100e3)
     graf1 = filtro.plot_bode(tf, min_f=1,max_f=1e6, points=100e3)
     graf1.canvas.set_window_title('Banda aumentada em %2.1f %%' %pct)
     print('Novo valor da banda: %2.1f' %n_bw)
     flag_opt = 1
     plt.show()
 
+print('Frequência de corte: %f' %filtro.wc)
+printTF(tf1.num, tf1.den)
+tfs2o = filtro.transfunc2('sk')
+
+if(n%2 == 0):
+    for i in range(0, int(n/2)):
+        printTF(tfs2o[i].num, tfs2o[i].den)
+        Q = np.sqrt(tfs2o[i].den[-1])/(tfs2o[i].den[-2])
+        print('Q = %2.2f' %Q)
+else:
+    for i in range(0, int(n/2)+1):
+        printTF(tfs2o[i].num, tfs2o[i].den)
+        if(i != int(n/2)):
+            Q = np.sqrt(tfs2o[i].den[-1])/(tfs2o[i].den[-2])
+            print('Q = %2.2f' %Q)
+
+"""
+==========DESCOMENTAR CASO QUEIRA A OTIMIZAÇÃO E COMPONENTES PASSIVOS====================
 if(resposta.lower() == 'bp' or resposta.lower() == 'bs'):
     if(flag_opt == 1):
         print('BW a ser usado para calcular os elementos:\n[1] - Original\n[2] - Otimizado\n')
@@ -89,6 +105,7 @@ if(resposta.lower() == 'bp' or resposta.lower() == 'bs'):
             n_bw = n_bw
     else:
         n_bw = Wp2 - Wp1
+        
 
     print('Escolha a topologia: \n[S] -> Começa com LC série\n[P] -> Começa com LC paralelo\n')
     top = input('Digite sua escolha: ')

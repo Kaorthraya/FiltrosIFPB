@@ -100,8 +100,10 @@ class f_chebyshev1:
         w0 = kwargs.get('w0', 0)
         Bw = kwargs.get('bw', self.Bp)
         ordem = kwargs.get('ord', self.ordem())
+        resp = kwargs.get('response', self.tipo)
+        G_db = kwargs.get('G', self.G_bp)
         fcn = 0
-        if self.tipo == 'lp':
+        if resp == 'lp':
             self.den_norm = np.real(np.poly(polos))
             denm = np.zeros(len(self.den_norm))
             for i in range(0, len(polos) + 1):
@@ -110,8 +112,8 @@ class f_chebyshev1:
                 num = denm[-1]*(1/np.sqrt(1+np.power(self.eps,2)))
             else: 
                 num = denm[-1]
-            fcn = signal.TransferFunction(pow(10, -self.G_bp/20.0)*num, denm)
-        if self.tipo == 'hp':
+            fcn = signal.TransferFunction(pow(10, -G_db/20.0)*num, denm)
+        if resp == 'hp':
             self.den_norm = np.real(np.poly(polos))
             denm = np.zeros(len(polos) + 1)
             for i in range(0, len(polos) + 1):
@@ -121,8 +123,8 @@ class f_chebyshev1:
                 num[0] = denm[0]*(1/np.sqrt(1+np.power(self.eps,2)))
             else: 
                 num[0] = denm[0]
-            fcn = signal.TransferFunction(pow(10, -self.G_bp/20.0)*num, denm)
-        if(self.tipo == 'bp'):
+            fcn = signal.TransferFunction(pow(10, -G_db/20.0)*num, denm)
+        if(resp == 'bp'):
             self.den_norm = np.real(np.poly(polos))
             [num, den] = signal.lp2bp(self.den_norm[-1], self.den_norm, w0, Bw)
             if(self.ordem()%2 == 0):
@@ -130,7 +132,7 @@ class f_chebyshev1:
             else: 
                 num[0] = num[0]
             fcn = signal.TransferFunction(num, den)
-        if(self.tipo == 'bs'):
+        if(resp == 'bs'):
             self.den_norm = np.real(np.poly(polos))
             [num, den] = signal.lp2bs(self.den_norm[-1], self.den_norm, w0, Bw)
             if(self.ordem()%2 == 0):
@@ -147,6 +149,30 @@ class f_chebyshev1:
         for i in range(0, len(self.fasedeg)):
             fase_aj[i] = self.fasedeg[i]*(np.pi/180.0)              #AJUSTA A FASE PARA RADIANOS, A DERIVADA DEVE SER FEITA EM RAD PARA O RESULTADO DO GP_DELAY SEM EM SEGUNDOS
         self.fase = fase_aj
+
+    def transfunc2(self, t):
+            ordem = self.ordem()
+            polos2o = np.zeros(2)
+            tf2o = []
+            if(t.lower() == 'sk' and self.tipo == 'hp'):
+                print('A TRANSFORMAÇÃO DE FREQUÊNCIA PARA UM FILTRO PASSA-ALTA SALLEN-KEY É IGUAL A DO FILTRO PASSA BAIXA\nO QUE SE ALTERA É O CIRCUITO')
+            if(ordem%2 == 0):
+                for k in range(0, int(ordem/2)):
+                    polos2o = [self.roots[k], self.roots[-k-1]]
+                    tf = self.transfunc(polos2o, wp = self.wp, G = 0)
+                    tf2o.append(tf)
+            else:
+                for k in range(0, int(ordem/2)+1):
+                    if(k != int(ordem/2)):
+                        polos2o = [self.roots[k], self.roots[-k-1]]
+                        tf = self.transfunc(polos2o, wp = self.wp, G = 0)
+                        tf2o.append(tf)
+                    else:
+                        polo1o = [self.roots[int(ordem/2)]]
+                        tf = self.transfunc(polo1o, wp = self.wp,  G = self.G_bp)
+                        tf2o.append(tf)
+            self.tf2od = tf2o
+            return tf2o
 
     def gp_delay(self):
         aux = ((-1)*np.diff(self.fase)/np.diff(self.w))

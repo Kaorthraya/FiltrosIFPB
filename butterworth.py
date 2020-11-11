@@ -12,6 +12,7 @@ import math
 from scipy import signal
 from matplotlib import pyplot as plt
 from matplotlib.ticker import (AutoMinorLocator)
+import warnings
 
 class f_btrwrth:
     def __init__(self, tipo, **kwargs):
@@ -23,6 +24,7 @@ class f_btrwrth:
         self.w_s2 = kwargs.get('w_s2', 0)
         self.w_p1 = kwargs.get('w_p1', 0)
         self.w_p2 = kwargs.get('w_p2', 0)
+        self.tf2od = 0
         self.G_bp = 0
         self.tipo = tipo
         self.w = 0
@@ -102,45 +104,70 @@ class f_btrwrth:
         w0 = kwargs.get('w0', 0)
         Bw = kwargs.get('bw', self.Bp)
         ordem = kwargs.get('ord', self.ordem)
+        resp = kwargs.get('response', self.tipo)
+        G_db = kwargs.get('G', self.G_bp)
         fcn = 0
-        if self.tipo == 'lp':
+        if resp == 'lp':
             self.den_norm = np.real(np.poly(polos))
             denm = np.zeros(len(self.den_norm))
             for i in range(0, len(polos) + 1):
                 denm[i] = self.den_norm[i] * np.power(wc, i)
             num = denm[-1]
-            fcn = signal.TransferFunction((pow(10, -self.G_bp/20.0))*num, denm)
-        if self.tipo == 'hp':
+            fcn = signal.TransferFunction((pow(10, -G_db/20.0))*num, denm)
+        if resp == 'hp':
             self.den_norm = np.real(np.poly(polos))
             denm = np.zeros(len(polos) + 1)
             for i in range(0, len(polos) + 1):
                 denm[i] = self.den_norm[len(polos) - i] * np.power(wc, i)
             num = np.zeros(len(polos) + 1)
             num[0] = denm[0]
-            fcn = signal.TransferFunction((pow(10, -self.G_bp/20.0))*num, denm)
-        if(self.tipo == 'bp'):
+            fcn = signal.TransferFunction((pow(10, -G_db/20.0))*num, denm)
+        if(resp == 'bp'):
             self.den_norm = np.real(np.poly(polos))
             [num, den] = signal.lp2bp(self.den_norm[-1], self.den_norm, w0, Bw)
             fcn = signal.TransferFunction(num, den)
-        if(self.tipo == 'bs'):
+        if(resp == 'bs'):
             self.den_norm = np.real(np.poly(polos))
             [num, den] = signal.lp2bs(self.den_norm[-1], self.den_norm, w0, Bw)
             fcn = signal.TransferFunction(num, den)
-
         return fcn
 
+    def transfunc2(self, t):
+        ordem = self.ordem()
+        polos2o = np.zeros(2)
+        tf2o = []
+        if(t.lower() == 'sk' and self.tipo == 'hp'):
+            print('A TRANSFORMAÇÃO DE FREQUÊNCIA PARA UM FILTRO PASSA-ALTA SALLEN-KEY É IGUAL A DO FILTRO PASSA BAIXA\nO QUE SE ALTERA É O CIRCUITO')
+        if(ordem%2 == 0):
+            for k in range(0, int(ordem/2)):
+                polos2o = [self.roots[k], self.roots[-k-1]]
+                tf = self.transfunc(polos2o, wc = self.wc, G = 0)
+                tf2o.append(tf)
+        else:
+            for k in range(0, int(ordem/2)+1):
+                if(k != int(ordem/2)):
+                    polos2o = [self.roots[k], self.roots[-k-1]]
+                    tf = self.transfunc(polos2o, wc = self.wc, G = 0)
+                    tf2o.append(tf)
+                else:
+                    polo1o = [self.roots[int(ordem/2)]]
+                    tf = self.transfunc(polo1o, wc = self.wc, G = self.G_bp)
+                    tf2o.append(tf)
+        self.tf2od = tf2o
+        return tf2o
+
     def graphpoints(self, fcn, max_f, min_f, points):
-        dt = (max_f - min_f)/points
+        dt = float((max_f - min_f)/points)
         self.w, self.amp, self.fase = fcn.bode(w=np.arange(min_f, max_f, dt))
         if(self.tipo == 'hp'  or self.tipo == 'lp'):
-            kp = np.int(np.round((self.w_p - min_f)/dt))-1
-            kr = np.int(np.round((self.w_s - min_f)/dt))-1
+            kp = np.int(np.round((self.w_p - min_f)/dt))
+            kr = np.int(np.round((self.w_s - min_f)/dt))
             if(self.amp[kp] >= (self.a_p - self.G_bp) and self.amp[kr] <= (self.a_s - self.G_bp)):
                 print('Pontos de projeto ATENDIDOS!')
-                self.criterio = 0
+                self.criterio = 0               #Não há como otimizar, apenas aumentar a ordem
             else:
                 print('Pontos de projeto NÃO ATENDIDOS!')
-                self.criterio = -1
+                self.criterio = 0               #Não há como otimizar, apenas aumentar a ordem
         if(self.tipo == 'bp' or self.tipo == 'bs'):
             kp1 = np.int(np.round((self.w_p1 - min_f)/dt))-1
             kp2 = np.int(np.round((self.w_p2 - min_f)/dt))-1

@@ -49,14 +49,30 @@ polos = filtro.raizes_normal()
 if(resposta.lower() == 'lp' or resposta.lower() == 'hp'):
     tf = filtro.transfunc(polos, wp = fc1)
     filtro.graphpoints(1,1e6,1e6)
+    print('Frequência de corte: %f' %filtro.wp)
     filtro.plot_bode()
 else:
     tf = filtro.transfunc(polos, w0 = fc1)
     filtro.graphpoints(100e3, 1, 100e3)
+    print('Frequência de corte: %f' %filtro.wp)
     filtro.plot_bode()
 
 print("\nFunção de transferência do filtro: ")
 printTF(tf.num, tf.den)
+
+tfs2o = filtro.transfunc2('sk')
+
+if(n%2 == 0):
+    for i in range(0, int(n/2)):
+        printTF(tfs2o[i].num, tfs2o[i].den)
+        Q = np.sqrt(tfs2o[i].den[-1])/(tfs2o[i].den[-2])
+        print('Q = %2.2f' %Q)
+else:
+    for i in range(0, int(n/2)+1):
+        printTF(tfs2o[i].num, tfs2o[i].den)
+        if(i != int(n/2)):
+            Q = np.sqrt(tfs2o[i].den[-1])/(tfs2o[i].den[-2])
+            print('Q = %2.2f' %Q)
 
 plt.show()
 
