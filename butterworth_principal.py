@@ -79,19 +79,14 @@ while(filtro.criterio == -1):
 
 print('Frequência de corte: %f' %filtro.wc)
 printTF(tf1.num, tf1.den)
-tfs2o = filtro.transfunc2('sk')
 
-if(n%2 == 0):
-    for i in range(0, int(n/2)):
+if(n >= 2):
+    tfs2o = filtro.transfunc2('sk')
+    for i in range(0, len(tfs2o)):
         printTF(tfs2o[i].num, tfs2o[i].den)
-        Q = np.sqrt(tfs2o[i].den[-1])/(tfs2o[i].den[-2])
-        print('Q = %2.2f' %Q)
-else:
-    for i in range(0, int(n/2)+1):
-        printTF(tfs2o[i].num, tfs2o[i].den)
-        if(i != int(n/2)):
-            Q = np.sqrt(tfs2o[i].den[-1])/(tfs2o[i].den[-2])
-            print('Q = %2.2f' %Q)
+        componentes = filtro.elementsActive(tfs2o[i], 'sk', False, True)
+        for p in componentes:
+            print('%s: %s'%(p, eng_string(componentes[p], si=True)))
 
 """
 ==========DESCOMENTAR CASO QUEIRA A OTIMIZAÇÃO E COMPONENTES PASSIVOS====================
@@ -122,7 +117,6 @@ else:
         print('     %s = %s' %(b[i], eng_string(a[i], si=True)))
 
 ==========DESCOMENTAR CASO QUEIRA A OTIMIZAÇÃO E COMPONENTES====================
-
 """
 
 plt.show()

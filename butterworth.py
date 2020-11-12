@@ -24,6 +24,7 @@ class f_btrwrth:
         self.w_s2 = kwargs.get('w_s2', 0)
         self.w_p1 = kwargs.get('w_p1', 0)
         self.w_p2 = kwargs.get('w_p2', 0)
+        self.GanomT = 1
         self.tf2od = 0
         self.G_bp = 0
         self.tipo = tipo
@@ -136,25 +137,77 @@ class f_btrwrth:
         ordem = self.ordem()
         polos2o = np.zeros(2)
         tf2o = []
-        if(t.lower() == 'sk' and self.tipo == 'hp'):
-            print('A TRANSFORMAÇÃO DE FREQUÊNCIA PARA UM FILTRO PASSA-ALTA SALLEN-KEY É IGUAL A DO FILTRO PASSA BAIXA\nO QUE SE ALTERA É O CIRCUITO')
-        if(ordem%2 == 0):
-            for k in range(0, int(ordem/2)):
-                polos2o = [self.roots[k], self.roots[-k-1]]
-                tf = self.transfunc(polos2o, wc = self.wc, G = 0)
-                tf2o.append(tf)
-        else:
-            for k in range(0, int(ordem/2)+1):
-                if(k != int(ordem/2)):
+        if(t.lower() == 'sk' and (self.tipo == 'lp' or self.tipo == 'hp' )):
+            if(ordem%2 == 0):
+                for k in range(0, int(ordem/2)):
                     polos2o = [self.roots[k], self.roots[-k-1]]
                     tf = self.transfunc(polos2o, wc = self.wc, G = 0)
                     tf2o.append(tf)
-                else:
-                    polo1o = [self.roots[int(ordem/2)]]
-                    tf = self.transfunc(polo1o, wc = self.wc, G = self.G_bp)
-                    tf2o.append(tf)
+            else:
+                for k in range(0, int(ordem/2)+1):
+                    if(k != int(ordem/2)):
+                        polos2o = [self.roots[k], self.roots[-k-1]]
+                        tf = self.transfunc(polos2o, wc = self.wc, G = 0)
+                        tf2o.append(tf)
+                    else:
+                        polo1o = [self.roots[int(ordem/2)]]
+                        tf = self.transfunc(polo1o, wc = self.wc, G = self.G_bp)
+                        tf2o.append(tf)
         self.tf2od = tf2o
         return tf2o
+
+    def elementsActive(self, tf, t, ch1, ch2, **kwargs):
+        C = kwargs.get('C', 1e-6)
+        dictComp = {}
+        if(t.lower() == 'sk'):
+            if(len(tf.den) == 3):
+                print('Módulo de segunda ordem do tipo Sallen-Key')
+                Q = np.sqrt(tf.den[-1])/tf.den[-2]
+                Ki_2 = 1/(self.wc*C)
+                R4_2 = (2 - 1/Q)*Ki_2
+                K = 3 - 1/Q
+                R1_2 = 1*Ki_2
+                dictComp["Q"] = Q
+                if(ch1 == True):
+                    if(self.tipo == 'lp'):
+                        RB = R1_2/(1/K)
+                        RA = R1_2/(1 - 1/K)
+                        dictComp["RA"] = RA
+                        dictComp["RB"] = RB
+                    if(self.tipo == 'hp'):
+                        CA = (1/K)*C
+                        CB = (1 - 1/K)*C
+                        dictComp["CA"] = CA
+                        dictComp["CB"] = CB
+                else:
+                    dictComp["R1"] = R1_2
+                dictComp["R2"] = R1_2
+                dictComp["R3"] = R1_2
+                dictComp["R4"] = R4_2
+                dictComp["C1"] = C
+                dictComp["C2"] = C
+                dictComp["Ganom"] = K
+                self.GanomT = K*self.GanomT
+            else:
+                print('Módulo de primeira ordem')
+                if(ch1 == False):
+                    if(ch2 == True):
+                        numr = tf.num[0]*(1/self.GanomT)
+                    elif(ch2 == False):
+                        numr = tf.num[0]
+                
+                if(self.tipo == 'lp'):
+                    Ki_1 = (1/numr)/C
+                    print(numr)
+                if(self.tipo == 'hp'):
+                    Ki_1 = (1/tf.den[-1])/C
+                
+                R1_1 = 1*Ki_1
+                R2_1 = (numr/tf.den[-1])*Ki_1
+                dictComp["R1"] = R1_1
+                dictComp["R2"] = R2_1
+                dictComp["C"] = C
+        return dictComp
 
     def graphpoints(self, fcn, max_f, min_f, points):
         dt = float((max_f - min_f)/points)
