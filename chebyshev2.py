@@ -38,6 +38,14 @@ class f_chebyshev2:
         self.Bs = 0
         self.eps = 0
 
+    def ganho_bp(self, G):
+        if(G >= self.a_p):
+            self.G_bp = -G
+            self.a_s = self.a_s + self.G_bp
+            self.a_p = self.a_p + self.G_bp
+        else:
+            raise ValueError("A atenuação na banda de passagem deve ser menor que o ganho na banda de passagem")
+
     def ordem(self, **kwargs):
         result = 0
         self.testa_par()
@@ -102,6 +110,7 @@ class f_chebyshev2:
         ws = kwargs.get('ws', 0)
         w0 = kwargs.get('w0', 0)
         Bw = kwargs.get('bw', self.Bs)
+        G_db = kwargs.get('G', self.G_bp)
         ordem = kwargs.get('ord', self.ordem())
         fcn = 0
         if self.tipo == 'lp':
@@ -112,33 +121,60 @@ class f_chebyshev2:
             self.den_norm = np.real(np.poly(polos))
             numm = self.num_norm
             denm = self.den_norm
-            for i in range(0, ordem+1):
+            for i in range(0, len(polos) + 1):
                 denm[i] = denm[i]*pow(ws, i)
             for i in range(0, len(zeros)+1):
                 numm[i] = numm[i]*pow(ws, i)
             k = denm[-1]/numm[-1]
-            fcn = signal.TransferFunction(k*numm, denm)
+            fcn = signal.TransferFunction((pow(10, -G_db/20.0))*k*numm, denm)
         if(self.tipo == 'hp'):
             self.den_norm = np.real(np.poly(polos))
             self.num_norm = np.real(np.poly(zeros))
             numm = self.num_norm[::-1]
             denm = self.den_norm[::-1]
-            for i in range(0, ordem+1):
+            for i in range(0, len(polos) + 1):
                 denm[i] = denm[i]*pow(ws, i)
             for i in range(0, len(zeros)+1):
                 numm[i] = numm[i]*pow(ws, i)
             if(ordem%2 != 0):
                 numm = np.append(numm, 0)
             k = denm[0]/numm[0]
-            fcn = signal.TransferFunction(k*numm, denm)
+            fcn = signal.TransferFunction((pow(10, -G_db/20.0))*k*numm, denm)
         if(self.tipo == 'bp'):
             self.den_norm = np.real(np.poly(polos))
             self.num_norm = np.real(np.poly(zeros))
             k = self.den_norm[-1]/self.num_norm[-1]
             numm, denm = signal.lp2bp(k*self.num_norm, self.den_norm, w0, Bw)
-            fcn = signal.TransferFunction(numm, denm)
+            fcn = signal.TransferFunction((pow(10, -G_db/20.0))*numm, denm)
         self.fcn = fcn
         return fcn
+
+    def transfunc2(self, t):
+        ordem = self.ordem()
+        polos2o = np.zeros(2)
+        zeros2o = np.zeros(2)
+        tf2o = []
+        if(t.lower() == 'notch' and (self.tipo == 'lp' or self.tipo == 'hp')):
+            if(ordem%2 == 0):
+                for k in range(0, int(ordem/2)):
+                    polos2o = [self.roots[k], self.roots[-k-1]]
+                    zeros2o = [self.zer[k], self.zer[k+int(ordem/2)]]
+                    tf = self.transfunc(zeros2o, polos2o, ws = self.ws, G = 0)
+                    print((zeros2o))
+                    print((polos2o))
+                    tf2o.append(tf)
+            else:
+                for k in range(0, int(ordem/2)+1):
+                    if(k != int(ordem/2)):
+                        polos2o = [self.roots[k], self.roots[-k-1]]
+                        tf = self.transfunc(polos2o, wc = self.wc, G = 0)
+                        tf2o.append(tf)
+                    else:
+                        polo1o = [self.roots[int(ordem/2)]]
+                        tf = self.transfunc(polo1o, wc = self.wc, G = self.G_bp)
+                        tf2o.append(tf)
+        self.tf2od = tf2o
+        return tf2o
 
     def graphpoints(self, min_f, max_f, points):
         self.w, self.amp, self.fase = self.fcn.bode(w=np.arange(min_f, max_f, (max_f - min_f)/points))
@@ -156,8 +192,8 @@ class f_chebyshev2:
         ax.grid(True, which="both")  # grid
 
         if(self.tipo == 'hp'  or self.tipo == 'lp'):
-            bp = ax.scatter(self.w_p, self.a_p)  # ponto de projeto de passagem
-            br = ax.scatter(self.w_s, self.a_s)  # ponto de projeto de rejeição
+            bp = ax.scatter(self.w_p, self.a_p - self.G_bp)  # ponto de projeto de passagem
+            br = ax.scatter(self.w_s, self.a_s - self.G_bp)  # ponto de projeto de rejeição
             ax.legend((bp, br), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
         if(self.tipo == 'bp' or self.tipo == 'bs'):
             bp1 = ax.scatter(self.w_p1, self.a_p)
