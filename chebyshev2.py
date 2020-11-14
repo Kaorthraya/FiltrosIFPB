@@ -23,6 +23,7 @@ class f_chebyshev2:
         self.w_s2 = kwargs.get('w_s2', 0)
         self.w_p1 = kwargs.get('w_p1', 0)
         self.w_p2 = kwargs.get('w_p2', 0)
+        self.ativo = False
         self.fcn = 0
         self.w = 0
         self.amp = 0
@@ -39,10 +40,11 @@ class f_chebyshev2:
         self.eps = 0
 
     def ganho_bp(self, G):
-        if(G >= self.a_p):
+        if(G != 0):
             self.G_bp = -G
             self.a_s = self.a_s + self.G_bp
             self.a_p = self.a_p + self.G_bp
+            self.ativo = True
         else:
             raise ValueError("A atenuação na banda de passagem deve ser menor que o ganho na banda de passagem")
 
@@ -114,7 +116,7 @@ class f_chebyshev2:
         ordem = kwargs.get('ord', self.ordem())
         fcn = 0
         if self.tipo == 'lp':
-            if(ordem == 1):
+            if(len(zeros) == 1):
                 self.num_norm = np.array([1])
             else:
                 self.num_norm = np.real(np.poly(zeros))
@@ -125,7 +127,10 @@ class f_chebyshev2:
                 denm[i] = denm[i]*pow(ws, i)
             for i in range(0, len(zeros)+1):
                 numm[i] = numm[i]*pow(ws, i)
-            k = denm[-1]/numm[-1]
+            if(self.ativo == True and len(polos) == 2):
+                k = 1
+            else:
+                k = denm[-1]/numm[-1]
             fcn = signal.TransferFunction((pow(10, -G_db/20.0))*k*numm, denm)
         if(self.tipo == 'hp'):
             self.den_norm = np.real(np.poly(polos))
@@ -153,25 +158,37 @@ class f_chebyshev2:
         ordem = self.ordem()
         polos2o = np.zeros(2)
         zeros2o = np.zeros(2)
+        zerosNo = np.roots(self.fcn.num)
+        polosNo = np.roots(self.fcn.den)
+        modZ = np.abs(zerosNo)
+        modP = np.abs(polosNo)
+        zerosNo = zerosNo[np.argsort(modZ)]
+        polosNo = polosNo[np.argsort(modP)]
         tf2o = []
         if(t.lower() == 'notch' and (self.tipo == 'lp' or self.tipo == 'hp')):
             if(ordem%2 == 0):
                 for k in range(0, int(ordem/2)):
-                    polos2o = [self.roots[k], self.roots[-k-1]]
-                    zeros2o = [self.zer[k], self.zer[k+int(ordem/2)]]
-                    tf = self.transfunc(zeros2o, polos2o, ws = self.ws, G = 0)
-                    print((zeros2o))
-                    print((polos2o))
+                    zeros2o = [zerosNo[2*k], zerosNo[2*k + 1]]
+                    polos2o = [polosNo[2*k], polosNo[2*k + 1]]
+                    num = np.poly((1j)*np.imag(zeros2o))
+                    den = np.poly(polos2o)
+                    tf = signal.TransferFunction(num, den)
                     tf2o.append(tf)
             else:
                 for k in range(0, int(ordem/2)+1):
                     if(k != int(ordem/2)):
-                        polos2o = [self.roots[k], self.roots[-k-1]]
-                        tf = self.transfunc(polos2o, wc = self.wc, G = 0)
+                        zeros2o = [zerosNo[2*k], zerosNo[2*k + 1]]
+                        polos2o = [polosNo[2*k], polosNo[2*k + 1]]
+                        num = np.poly((1j)*np.imag(zeros2o))
+                        den = np.poly(polos2o)
+                        tf = signal.TransferFunction(num, den)
                         tf2o.append(tf)
                     else:
-                        polo1o = [self.roots[int(ordem/2)]]
-                        tf = self.transfunc(polo1o, wc = self.wc, G = self.G_bp)
+                        zero1o = 1
+                        polo1o = polosNo[-1]
+                        num = np.poly((1j)*np.imag(zero1o))
+                        den = np.poly(polo1o)
+                        tf = signal.TransferFunction(num, den)
                         tf2o.append(tf)
         self.tf2od = tf2o
         return tf2o

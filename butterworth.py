@@ -24,6 +24,7 @@ class f_btrwrth:
         self.w_s2 = kwargs.get('w_s2', 0)
         self.w_p1 = kwargs.get('w_p1', 0)
         self.w_p2 = kwargs.get('w_p2', 0)
+        self.fcn = 0
         self.GanomT = 1
         self.tf2od = 0
         self.G_bp = 0
@@ -126,11 +127,14 @@ class f_btrwrth:
         if(resp == 'bp'):
             self.den_norm = np.real(np.poly(polos))
             [num, den] = signal.lp2bp(self.den_norm[-1], self.den_norm, w0, Bw)
-            fcn = signal.TransferFunction(num, den)
+            print('EMBAIXO')
+            print(self.den_norm)
+            fcn = signal.TransferFunction((pow(10, -G_db/20.0))*num, den)
         if(resp == 'bs'):
             self.den_norm = np.real(np.poly(polos))
             [num, den] = signal.lp2bs(self.den_norm[-1], self.den_norm, w0, Bw)
-            fcn = signal.TransferFunction(num, den)
+            fcn = signal.TransferFunction((pow(10, -G_db/20.0))*num, den)
+        self.fcn = fcn
         return fcn
 
     def transfunc2(self, t):
@@ -153,6 +157,22 @@ class f_btrwrth:
                         polo1o = [self.roots[int(ordem/2)]]
                         tf = self.transfunc(polo1o, wc = self.wc, G = self.G_bp)
                         tf2o.append(tf)
+        if(t.lower() == 'notch' and (self.tipo == 'bs')):
+            polosNo = np.roots(self.fcn.den)
+            zerosNo = np.roots(self.fcn.num)
+            modZ = np.abs(zerosNo)
+            modP = np.abs(polosNo)
+            polosNo = polosNo[np.argsort(modP)]
+            zerosNo = zerosNo[np.argsort(modZ)]
+            for k in range(0, int(ordem)):
+                zeros2o = [zerosNo[2*k], zerosNo[2*k + 1]]
+                polos2o = [polosNo[2*k], polosNo[2*k + 1]]
+                print(self.fcn.den)
+                print(self.fcn.num)
+                num = np.poly((1j)*np.imag(zeros2o))
+                den = np.poly(polos2o)
+                tf = signal.TransferFunction(num, den)
+                tf2o.append(tf)
         self.tf2od = tf2o
         return tf2o
 
@@ -226,7 +246,7 @@ class f_btrwrth:
             kp2 = np.int(np.round((self.w_p2 - min_f)/dt))-1
             kr1 = np.int(np.round((self.w_s1 - min_f)/dt))-1
             kr2 = np.int(np.round((self.w_s2 - min_f)/dt))-1
-            if(self.amp[kp1] >= self.a_p) and (self.amp[kp2] >= self.a_p) and (self.amp[kr1] <= self.a_s) and (self.amp[kr2] <= self.a_s):
+            if(self.amp[kp1] >= (self.a_p - self.G_bp)) and (self.amp[kp2] >= (self.a_p - self.G_bp)) and (self.amp[kr1] <= (self.a_s - self.G_bp)) and (self.amp[kr2] <= (self.a_s - self.G_bp)):
                 print('Pontos de projeto: ATENDIDOS!')
                 self.criterio = 0
             else:
@@ -245,10 +265,10 @@ class f_btrwrth:
             br = ax.scatter(self.w_s, self.a_s - self.G_bp)  # ponto de projeto de rejeição
             ax.legend((bp, br), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
         elif(self.tipo == 'bp' or self.tipo == 'bs'):
-            bp1 = ax.scatter(self.w_p1, self.a_p)
-            bp2 = ax.scatter(self.w_p2, self.a_p)  # ponto de projeto de passagem
-            bs1 = ax.scatter(self.w_s1, self.a_s)  # ponto de projeto de rejeição
-            bs2 = ax.scatter(self.w_s2, self.a_s)
+            bp1 = ax.scatter(self.w_p1, self.a_p - self.G_bp)
+            bp2 = ax.scatter(self.w_p2, self.a_p - self.G_bp)  # ponto de projeto de passagem
+            bs1 = ax.scatter(self.w_s1, self.a_s - self.G_bp)  # ponto de projeto de rejeição
+            bs2 = ax.scatter(self.w_s2, self.a_s - self.G_bp)
             ax.legend((bp1, bp2, bs1, bs2), ("P. Projeto (passagem)", "P. Projeto (passagem)", "P. Projeto (rejeição)", "P. Projeto (rejeição)"), loc='lower left', fontsize=8)
         ax.margins(x=0)
         ax.margins(y=0.05)  # margem y

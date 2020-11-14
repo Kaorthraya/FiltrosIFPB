@@ -78,15 +78,17 @@ while(filtro.criterio == -1):
     plt.show()
 
 print('Frequência de corte: %f' %filtro.wc)
-printTF(tf1.num, tf1.den)
+printTF(tf.num, tf.den)
 
 if(n >= 2):
-    tfs2o = filtro.transfunc2('sk')
+    filtro.fcn = tf
+    printTF(filtro.fcn.num, filtro.fcn.den)
+    tfs2o = filtro.transfunc2('notch')
     for i in range(0, len(tfs2o)):
         printTF(tfs2o[i].num, tfs2o[i].den)
-        componentes = filtro.elementsActive(tfs2o[i], 'sk', False, True)
-        for p in componentes:
-            print('%s: %s'%(p, eng_string(componentes[p], si=True)))
+        #componentes = filtro.elementsActive(tfs2o[i], 'sk', False, True)
+        #for p in componentes:
+        #    print('%s: %s'%(p, eng_string(componentes[p], si=True)))
 
 """
 ==========DESCOMENTAR CASO QUEIRA A OTIMIZAÇÃO E COMPONENTES PASSIVOS====================
