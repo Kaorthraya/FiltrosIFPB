@@ -60,7 +60,7 @@ else:
 print("\nFunção de transferência do filtro: ")
 printTF(tf.num, tf.den)
 
-tfs2o = filtro.transfunc2('sk')
+tfs2o = filtro.transfunc2('tow')
 
 if(n%2 == 0):
     for i in range(0, int(n/2)):

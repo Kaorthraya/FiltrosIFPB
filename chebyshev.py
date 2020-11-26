@@ -154,24 +154,27 @@ class f_chebyshev1:
             ordem = self.ordem()
             polos2o = np.zeros(2)
             tf2o = []
-            if(t.lower() == 'sk' and self.tipo == 'hp'):
-                print('A TRANSFORMAÇÃO DE FREQUÊNCIA PARA UM FILTRO PASSA-ALTA SALLEN-KEY É IGUAL A DO FILTRO PASSA BAIXA\nO QUE SE ALTERA É O CIRCUITO')
-            if(ordem%2 == 0):
-                for k in range(0, int(ordem/2)):
-                    polos2o = [self.roots[k], self.roots[-k-1]]
-                    tf = self.transfunc(polos2o, wp = self.wp, G = 0)
-                    tf2o.append(tf)
-            else:
-                for k in range(0, int(ordem/2)+1):
-                    if(k != int(ordem/2)):
+            if((t.lower() == 'sk' or t.lower() == 'tow') and (self.tipo == 'hp' or self.tipo =='lp')):
+                if(ordem%2 == 0):
+                    for k in range(0, int(ordem/2)):
                         polos2o = [self.roots[k], self.roots[-k-1]]
                         tf = self.transfunc(polos2o, wp = self.wp, G = 0)
                         tf2o.append(tf)
-                    else:
-                        polo1o = [self.roots[int(ordem/2)]]
-                        tf = self.transfunc(polo1o, wp = self.wp,  G = self.G_bp)
-                        tf2o.append(tf)
-            self.tf2od = tf2o
+                else:
+                    for k in range(0, int(ordem/2)+1):
+                        if(k != int(ordem/2)):
+                            polos2o = [self.roots[k], self.roots[-k-1]]
+                            tf = self.transfunc(polos2o, wp = self.wp, G = 0)
+                            tf2o.append(tf)
+                        else:
+                            if(t.lower() == 'tow'):
+                                Gain = 0
+                            else:
+                                Gain = self.G_bp
+                            polo1o = [self.roots[int(ordem/2)]]
+                            tf = self.transfunc(polo1o, wp = self.wp,  G = Gain)
+                            tf2o.append(tf)
+                self.tf2od = tf2o
             return tf2o
 
     def gp_delay(self):

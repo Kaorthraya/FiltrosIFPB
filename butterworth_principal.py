@@ -83,7 +83,7 @@ printTF(tf.num, tf.den)
 if(n >= 2):
     filtro.fcn = tf
     printTF(filtro.fcn.num, filtro.fcn.den)
-    tfs2o = filtro.transfunc2('notch')
+    tfs2o = filtro.transfunc2('sk')
     for i in range(0, len(tfs2o)):
         printTF(tfs2o[i].num, tfs2o[i].den)
         #componentes = filtro.elementsActive(tfs2o[i], 'sk', False, True)

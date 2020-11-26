@@ -170,6 +170,8 @@ class f_chebyshev2:
                 for k in range(0, int(ordem/2)):
                     zeros2o = [zerosNo[2*k], zerosNo[2*k + 1]]
                     polos2o = [polosNo[2*k], polosNo[2*k + 1]]
+                    print(zeros2o)
+                    print(polos2o)
                     num = np.poly((1j)*np.imag(zeros2o))
                     den = np.poly(polos2o)
                     tf = signal.TransferFunction(num, den)
