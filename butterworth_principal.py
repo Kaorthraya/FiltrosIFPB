@@ -55,7 +55,7 @@ else:
 filtro.graphpoints(tf1, 1e6, 0, 1e6)
 graf1 = filtro.plot_bode(tf1)
 print("\nFunção de transferência do filtro: ")
-#printTF(tf1.num, tf1.den)
+printTF(tf1.num, tf1.den)
 graf1.canvas.set_window_title('TF')
 
 while(filtro.criterio == -1):
@@ -67,6 +67,7 @@ while(filtro.criterio == -1):
         None
     else:
         print('Otimização não realizada. Parâmetros originais preservados\n')
+        tf = tf1
         break
     pct = float(input('Digite o valor em porcentagem do aumento/diminuição de banda: '))
     tf, n_bw = filtro.bw_increase(pct)
@@ -83,12 +84,17 @@ printTF(tf.num, tf.den)
 if(n >= 2):
     filtro.fcn = tf
     printTF(filtro.fcn.num, filtro.fcn.den)
+<<<<<<< Updated upstream
     tfs2o = filtro.transfunc2('sk')
+=======
+    tfs2o, Q = filtro.transfunc2('friend')
+>>>>>>> Stashed changes
     for i in range(0, len(tfs2o)):
         printTF(tfs2o[i].num, tfs2o[i].den)
-        #componentes = filtro.elementsActive(tfs2o[i], 'sk', False, True)
-        #for p in componentes:
-        #    print('%s: %s'%(p, eng_string(componentes[p], si=True)))
+        print("Valor de Q: %2.3f" %Q[i])
+        componentes = filtro.elementosAtivos('friend', Q[i], w0 = np.sqrt(tfs2o[i].den[-1]))
+        for p in componentes:
+            print('%s: %s'%(p, eng_string(componentes[p], si=True)))
 
 """
 ==========DESCOMENTAR CASO QUEIRA A OTIMIZAÇÃO E COMPONENTES PASSIVOS====================

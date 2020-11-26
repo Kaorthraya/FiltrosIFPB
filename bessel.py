@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import signal
+import math
 
 class f_bessel:
     def __init__(self, tipo, **kwargs):
@@ -23,13 +24,22 @@ class f_bessel:
         self.tipo = tipo
         self.gpdelay = 0
 
+    def ganho_bp(self, G):
+        if(G >= self.a_p):
+            self.G_bp = -G
+            self.a_s = self.a_s + self.G_bp
+            self.a_p = self.a_p + self.G_bp
+        else:
+            raise ValueError("A atenuação na banda de passagem deve ser menor que o ganho na banda de passagem")
+
+
     def coeff(self, N):
         aux = np.zeros(N+1, dtype=float)
         aux[0] = 1.0
         for i in range(0, N):
             aux[i+1] = (2*(N-i)*aux[i])/((2*N-i)*(i+1))
         self.coeficientes = aux[::-1]
-        return self.coeficientes
+        
 
     def tf_norm(self):
         self.tf = signal.TransferFunction(1, self.coeficientes)
@@ -68,34 +78,79 @@ class f_bessel:
 
     def transf(self, ordem, tipo, **kwargs):
         kf = kwargs.get('kf', 0)
+        w0 = kwargs.get('w0', 0)
         Bw = kwargs.get('bw', 0)
+        G = kwargs.get('G', 1)
+        Glin = pow(10.0, G/20.0)
         if(tipo == 'lp'):
             den = np.zeros(ordem+1, dtype=float)
             for i in range(0, ordem+1):
                 den[i] = self.coeficientes[i]*pow(kf, i)
             num = den[-1]
-            self.tf = signal.TransferFunction(num, den)
         if(tipo == 'hp'):
-            num = np.zeros(ordem+1, dtype=float)
-            den = np.zeros(ordem+1, dtype=float)
             num, den = signal.lp2hp(1, self.coeficientes, kf)
-            self.tf = signal.TransferFunction(num, den)
+        if(tipo == 'bp'):
+            num, den = signal.lp2bp(self.tf.den[-1], self.tf.den, w0, Bw)
+        self.tf = signal.TransferFunction(Glin*num, den)
         return self.tf
     
+    def transfunc2(self, ordem, top):
+        if(self.tipo == 'bp' and top.lower() == 'friend'):
+            polosNo = np.roots(self.tf.den)
+            TF2o = []
+            Qv = []
+            num = [1, 0]
+            for i in range(int(ordem/2)):
+                polos2o = [polosNo[2*i], np.conjugate(polosNo[2*i])]
+                den = np.poly(polos2o)
+                tf_aux = signal.TransferFunction(num, den)
+                TF2o.append(tf_aux)
+                Q_aux = np.sqrt(tf_aux.den[-1])/tf_aux.den[-2]
+                Qv.append(Q_aux)
+            return TF2o, Qv
+
+    def elementosAtivos(self, top, Q, **kwargs):
+        Comp = {}
+        w0 = kwargs.get('w0', 1)
+        if(top.lower() == 'friend'):
+            Cn = (1e-6)*float(input('Valor do capacitor fixo (uF): '))
+            Ki = 1/(2*Q*w0*Cn)
+            Comp["C1"] = Cn
+            Comp["C2"] = Cn
+            Comp["R1"] = 1*Ki
+            Comp["R2"] = (4*pow(Q, 2))*Ki
+        return Comp
+
+
     def test_point(self):
         if(self.tipo == 'lp' or self.tipo == 'hp'):
-            if(self.amp[self.index(self.w_s)] <= self.a_s):
+            if(self.amp[self.index(self.w_s)] <= (self.a_s-self.G_bp)):
                 print('Ponto de rejeição aceito!')
                 self.criterio = 0
             else:
                 print('Ponto de rejeição NÃO aceito!')
                 self.criterio = -1
+        if(self.tipo == 'bp' or self.tipo == 'bs'):
+            if(self.amp[self.index(self.w_s1)] <= (self.a_s-self.G_bp) and self.amp[self.index(self.w_s2)] <= (self.a_s-self.G_bp)):
+                print('Ponto de rejeição aceito')
+                self.criterio = 0
+            else:
+                print('Ponto de rejeição NÃO aceito!')
+                self.criterio = -1
+
 
     def plot_scatter(self, ax):
         if(self.tipo == 'lp' or self.tipo == 'hp'):
-            bp = ax.scatter(self.w_p, self.a_p, color = 'green')  # ponto de projeto de passagem
-            br = ax.scatter(self.w_s, self.a_s, color = 'red')  # ponto de projeto de rejeição
+            bp = ax.scatter(self.w_p, (self.a_p-self.G_bp), color = 'green')  # ponto de projeto de passagem
+            br = ax.scatter(self.w_s, (self.a_s-self.G_bp), color = 'red')  # ponto de projeto de rejeição
             ax.legend((bp, br), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower right', fontsize=8)
+        if(self.tipo == 'bs' or self.tipo == 'bp'):
+            bp1 = ax.scatter(self.w_p1, self.a_p-self.G_bp, color = 'green')  # ponto de projeto de passagem
+            bp2 = ax.scatter(self.w_p2, self.a_p-self.G_bp, color = 'green')  # ponto de projeto de passagem
+            br1 = ax.scatter(self.w_s1, self.a_s-self.G_bp, color = 'red')  # ponto de projeto de rejeição
+            br2 = ax.scatter(self.w_s2, self.a_s-self.G_bp, color = 'red')  # ponto de projeto de rejeição
+            ax.legend((bp1, br1), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower right', fontsize=8)
+            ax.legend((bp2, br2), ("P. Projeto (passagem)", "P. Projeto (rejeição)"), loc='lower right', fontsize=8)
 
     def gp_delay(self):
         gd = (-1)*(np.diff((self.fase))/np.diff(self.w))
@@ -104,3 +159,21 @@ class f_bessel:
     def index(self, freq):
         ind = np.int(np.round((freq - self.min_f)/self.step))
         return ind
+
+def eng_string( x, format='%s', si=False):
+    sign = ''
+    if x < 0:
+        x = -x
+        sign = '-'
+    exp = int( math.floor( math.log10( x)))
+    exp3 = exp - ( exp % 3)
+    x3 = x / ( 10 ** exp3)
+
+    if si and exp3 >= -24 and exp3 <= 24 and exp3 != 0:
+        exp3_text = 'yzafpnum kMGTPEZY'[ int(( exp3 - (-24)) / 3)]
+    elif exp3 == 0:
+        exp3_text = ''
+    else:
+        exp3_text = 'e%s' % exp3
+
+    return ( '%s'+format+'%s') % ( sign, "{:.3f}".format(x3), exp3_text)

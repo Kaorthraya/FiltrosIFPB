@@ -173,61 +173,34 @@ class f_btrwrth:
                 den = np.poly(polos2o)
                 tf = signal.TransferFunction(num, den)
                 tf2o.append(tf)
+        if(t.lower() == 'friend' and self.tipo == 'bp'):
+            print(self.fcn.den)
+            polosNo = np.roots(self.fcn.den)
+            tf2o = []
+            Qv = []
+            num = [1, 0]
+            for i in range(ordem):
+                polos2o = [polosNo[2*i], np.conjugate(polosNo[2*i])]
+                den = np.poly(polos2o)
+                tf_aux = signal.TransferFunction(num, den)
+                tf2o.append(tf_aux)
+                Q_aux = np.sqrt(tf_aux.den[-1])/tf_aux.den[-2]
+                Qv.append(Q_aux)
         self.tf2od = tf2o
-        return tf2o
+        return tf2o, Qv
 
-    def elementsActive(self, tf, t, ch1, ch2, **kwargs):
-        C = kwargs.get('C', 1e-6)
-        dictComp = {}
-        if(t.lower() == 'sk'):
-            if(len(tf.den) == 3):
-                print('Módulo de segunda ordem do tipo Sallen-Key')
-                Q = np.sqrt(tf.den[-1])/tf.den[-2]
-                Ki_2 = 1/(self.wc*C)
-                R4_2 = (2 - 1/Q)*Ki_2
-                K = 3 - 1/Q
-                R1_2 = 1*Ki_2
-                dictComp["Q"] = Q
-                if(ch1 == True):
-                    if(self.tipo == 'lp'):
-                        RB = R1_2/(1/K)
-                        RA = R1_2/(1 - 1/K)
-                        dictComp["RA"] = RA
-                        dictComp["RB"] = RB
-                    if(self.tipo == 'hp'):
-                        CA = (1/K)*C
-                        CB = (1 - 1/K)*C
-                        dictComp["CA"] = CA
-                        dictComp["CB"] = CB
-                else:
-                    dictComp["R1"] = R1_2
-                dictComp["R2"] = R1_2
-                dictComp["R3"] = R1_2
-                dictComp["R4"] = R4_2
-                dictComp["C1"] = C
-                dictComp["C2"] = C
-                dictComp["Ganom"] = K
-                self.GanomT = K*self.GanomT
-            else:
-                print('Módulo de primeira ordem')
-                if(ch1 == False):
-                    if(ch2 == True):
-                        numr = tf.num[0]*(1/self.GanomT)
-                    elif(ch2 == False):
-                        numr = tf.num[0]
-                
-                if(self.tipo == 'lp'):
-                    Ki_1 = (1/numr)/C
-                    print(numr)
-                if(self.tipo == 'hp'):
-                    Ki_1 = (1/tf.den[-1])/C
-                
-                R1_1 = 1*Ki_1
-                R2_1 = (numr/tf.den[-1])*Ki_1
-                dictComp["R1"] = R1_1
-                dictComp["R2"] = R2_1
-                dictComp["C"] = C
-        return dictComp
+
+    def elementosAtivos(self, t, Q, **kwargs):
+        Comp = {}
+        w0 = kwargs.get('w0', 1)
+        if(t.lower() == 'friend'):
+            Cn = (1e-6)*float(input('Valor do capacitor fixo (uF): '))
+            Ki = 1/(2*Q*w0*Cn) 
+            Comp["C1"] = Cn
+            Comp["C2"] = Cn
+            Comp["R1"] = 1*Ki
+            Comp["R2"] = (4*pow(Q, 2))*Ki
+        return Comp
 
     def graphpoints(self, fcn, max_f, min_f, points):
         dt = float((max_f - min_f)/points)
